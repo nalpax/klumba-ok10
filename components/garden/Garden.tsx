@@ -1,0 +1,225 @@
+'use client';
+
+import { useEffect, useImperativeHandle, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
+import { SCHOOL } from '@/lib/content';
+import { describeFlower } from '@/lib/garden/flowers';
+import { GardenBackdrop } from './GardenBackdrop';
+import { GardenRenderer, type CameraState, type Selection } from '@/lib/garden/renderer';
+import type { FlowerColor, FlowerKind, FlowerType, Planting, Slot, Teacher } from '@/lib/garden/types';
+import { fullName } from '@/lib/names';
+
+export interface GardenHandle {
+  /** Приблизить и подсветить цветок. */
+  focusPlanting: (id: number) => void;
+  /** Показать клумбу целиком. */
+  fit: () => void;
+}
+
+interface GardenProps {
+  plantings: Planting[];
+  flowers: FlowerType[];
+  teachers: Teacher[];
+  colors: FlowerColor[];
+  /** false, пока данные ещё загружаются: первый набор рисуется без анимации роста. */
+  loaded?: boolean;
+  /** цветок, который нужно подсветить кольцом (например, только что посаженный) */
+  highlightId?: number | null;
+  /** свободные места — включает режим выбора места */
+  pickSlots?: Slot[] | null;
+  /** выбранное место и цветок-«призрак» на нём */
+  chosen?: { slot: Slot; kind: FlowerKind; color: string } | null;
+  onPickSlot?: (slot: Slot) => void;
+  /** показать яркими только цветы этого учителя */
+  focusTeacherId?: number | null;
+  /** элементы поверх клумбы (панель выбора места и т. п.) */
+  overlay?: ReactNode;
+  ref?: Ref<GardenHandle>;
+}
+
+export function Garden({
+  plantings,
+  flowers,
+  teachers,
+  colors,
+  loaded = true,
+  highlightId = null,
+  pickSlots = null,
+  chosen = null,
+  onPickSlot,
+  focusTeacherId = null,
+  overlay,
+  ref,
+}: GardenProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rendererRef = useRef<GardenRenderer | null>(null);
+  const seen = useRef<Set<number>>(new Set());
+  const initialised = useRef(false);
+
+  const [selection, setSelection] = useState<Selection | null>(null);
+  const [camera, setCamera] = useState<CameraState | null>(null);
+
+  const kinds = useMemo(() => new Map(flowers.map((f) => [f.id, f.kind])), [flowers]);
+  const kindsRef = useRef(kinds);
+  kindsRef.current = kinds;
+  const flowerById = useMemo(() => new Map(flowers.map((f) => [f.id, f])), [flowers]);
+  const teacherById = useMemo(() => new Map(teachers.map((t) => [t.id, t])), [teachers]);
+  const colorByHex = useMemo(() => new Map(colors.map((c) => [c.hex.toUpperCase(), c])), [colors]);
+
+  const onPickRef = useRef(onPickSlot);
+  onPickRef.current = onPickSlot;
+
+  // создание рендерера
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const renderer = new GardenRenderer({
+      canvas,
+      resolveKind: (id) => kindsRef.current.get(id) ?? 'tulip',
+      onSelect: setSelection,
+      onCamera: setCamera,
+      onPickSlot: (slot) => onPickRef.current?.(slot),
+      reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    });
+    rendererRef.current = renderer;
+
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => renderer.setEmblem(img);
+    img.src = SCHOOL.emblem;
+
+    return () => {
+      renderer.destroy();
+      rendererRef.current = null;
+      seen.current = new Set();
+      initialised.current = false;
+    };
+  }, []);
+
+  // синхронизация цветов: первый набор — сразу, новые — с анимацией роста
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+    if (!initialised.current) {
+      if (!loaded) return;
+      renderer.setPlantings(plantings);
+      seen.current = new Set(plantings.map((p) => p.id));
+      initialised.current = true;
+      return;
+    }
+    for (const p of plantings) {
+      if (!seen.current.has(p.id)) {
+        seen.current.add(p.id);
+        renderer.add(p, true);
+      }
+    }
+  }, [plantings, loaded]);
+
+  useEffect(() => {
+    if (highlightId != null) rendererRef.current?.highlightPlanting(highlightId);
+  }, [highlightId]);
+
+  // режим выбора места
+  const picking = pickSlots !== null;
+  useEffect(() => {
+    const r = rendererRef.current;
+    if (!r) return;
+    r.setPickMode(pickSlots);
+    if (pickSlots) {
+      r.ensureZoom(0.6); // на телефоне приближаем, чтобы точки можно было выбрать пальцем
+      setSelection(null);
+    }
+  }, [pickSlots]);
+
+  useEffect(() => {
+    rendererRef.current?.setChosen(chosen?.slot ?? null, chosen?.kind, chosen?.color);
+  }, [chosen]);
+
+  useEffect(() => {
+    rendererRef.current?.setFocusTeacher(focusTeacherId);
+  }, [focusTeacherId]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focusPlanting: (id: number) => {
+        rendererRef.current?.highlightPlanting(id);
+        rendererRef.current?.focusOn(id, 2.6);
+      },
+      fit: () => rendererRef.current?.fitView(),
+    }),
+    [],
+  );
+
+  const zoomIn = () => rendererRef.current?.zoomBy(1.5);
+  const zoomOut = () => rendererRef.current?.zoomBy(1 / 1.5);
+  const fitAll = () => rendererRef.current?.fitView();
+  const canZoomIn = !camera || camera.zoom < camera.maxZoom * 0.995;
+  const canZoomOut = !camera || camera.zoom > camera.fit * 1.005;
+
+  // подсказка над цветком: ФИО учителя, предмет, цветок и его цвет
+  let tip: { title: string; sub: string } | null = null;
+  if (selection?.type === 'planting') {
+    const p = selection.planting;
+    const t = teacherById.get(p.teacherId);
+    const f = flowerById.get(p.flowerId);
+    const c = colorByHex.get(p.color.toUpperCase());
+    const what = f ? (c ? describeFlower(c.name, f.kind, f.name) : f.name.toLowerCase()) : 'цветок';
+    tip = t
+      ? { title: fullName(t), sub: `${t.subject} · ${what}` }
+      : { title: 'Цветок', sub: what };
+  } else if (selection?.type === 'emblem') {
+    tip = { title: 'Символ нашей школы', sub: 'Подсолнух ОК10' };
+  }
+  const stageWidth = canvasRef.current?.clientWidth ?? 0;
+  const tipLeft = selection ? Math.min(Math.max(selection.x, 110), Math.max(stageWidth - 110, 110)) : 0;
+
+  return (
+    <div className="garden">
+      <div className="garden__stage" id="garden-stage" data-picking={picking ? 'true' : undefined}>
+        <GardenBackdrop />
+        <canvas
+          ref={canvasRef}
+          className="garden__canvas"
+          tabIndex={0}
+          role="img"
+          aria-label={`Общая клумба: посажено цветов — ${plantings.length}. Стрелки двигают вид, плюс и минус меняют масштаб.`}
+        />
+
+        <p className="garden__count" aria-live="polite">
+          <span>Посажено</span>
+          <strong>{loaded ? plantings.length : '—'}</strong>
+        </p>
+
+        <div className="garden__controls" role="group" aria-label="Масштаб клумбы">
+          <button type="button" onClick={zoomIn} disabled={!canZoomIn} aria-label="Приблизить">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+          </button>
+          <button type="button" onClick={zoomOut} disabled={!canZoomOut} aria-label="Отдалить">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14" /></svg>
+          </button>
+          <button type="button" onClick={fitAll} disabled={!canZoomOut} aria-label="Показать всю клумбу">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
+          </button>
+        </div>
+
+        {selection && tip && !picking ? (
+          <div
+            className={selection.y < 86 ? 'garden__tip garden__tip--below' : 'garden__tip'}
+            style={{ left: tipLeft, top: selection.y }}
+            role="status"
+          >
+            <strong>{tip.title}</strong>
+            <span>{tip.sub}</span>
+          </div>
+        ) : null}
+
+        {overlay}
+      </div>
+
+      <p className="garden__hint">
+        <span className="hint-fine">Нажмите на цветок, чтобы узнать, для какого он учителя. Приближение: кнопки, двойной клик или Ctrl + колесо.</span>
+        <span className="hint-coarse">Коснитесь цветка, чтобы узнать, для какого он учителя. Приближайте двумя пальцами.</span>
+      </p>
+    </div>
+  );
+}

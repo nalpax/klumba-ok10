@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { FlowerPreview } from '@/components/garden/FlowerPreview';
+import { Apple, Bell, Books, Pencil } from './Decor';
 import { HowLogin } from './HowLogin';
 
 const DOTS = [
@@ -47,7 +48,13 @@ const SWATCHES = ['#E03131', '#F783AC', '#F5C518', '#2F6FDE', '#7950F2', '#F8F4E
 
 export function HowItWorks() {
   return (
-    <section className="section" id="how" aria-labelledby="how-title">
+    <section className="section section--how" id="how" aria-labelledby="how-title">
+      <div className="school-doodles" aria-hidden="true">
+        <Apple className="doodle doodle--apple" />
+        <Pencil className="doodle doodle--pencil" />
+        <Books className="doodle doodle--books" />
+        <Bell className="doodle doodle--bell" />
+      </div>
       <div className="section__inner">
         <header className="section__head">
           <h2 className="section__title" id="how-title">

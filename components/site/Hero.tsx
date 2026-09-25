@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { STATUS_TEXT, type EventStatus } from '@/lib/content';
+import { Bunting, OakSprig, RowanSprig } from './Decor';
 import { Leaf, type LeafShape } from './Leaf';
 import { SchoolBadge } from './SchoolBadge';
 
@@ -36,6 +37,9 @@ export function Hero({ status = 'open' }: { status?: EventStatus }) {
         <span className="hero__sun-core" />
       </div>
       <div className="hero__moss" aria-hidden="true" />
+      <Bunting />
+      <RowanSprig className="hero__sprig hero__sprig--left" />
+      <OakSprig className="hero__sprig hero__sprig--right" />
       <div className="hero__leaves" aria-hidden="true">
         {LEAVES.map((l, i) => (
           <Leaf

@@ -858,3 +858,91 @@ html:has(.site) {
 .admin-qr { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; margin-top: 18px; }
 .admin-qr img { width: 220px; height: 220px; border-radius: 14px; background: #fff; padding: 8px; border: 1px solid var(--line-strong); }
 .admin-tab__lead + .field { margin-top: 16px; }
+
+/* ==========================================================================
+   Осенние и праздничные украшения (components/site/Decor.tsx)
+   ========================================================================== */
+
+/* гирлянда-флажки под шапкой первого экрана */
+.bunting {
+  position: absolute; z-index: 1; top: 70px; left: 50%; transform: translateX(-50%);
+  width: min(1240px, 100%); height: auto; pointer-events: none; overflow: visible;
+  filter: drop-shadow(0 6px 6px rgba(90, 50, 10, 0.18));
+}
+.bunting__letter { font-family: var(--font-serif); font-weight: 700; font-size: 25px; }
+.bunting__flag {
+  transform-box: fill-box; transform-origin: 50% 0;
+  animation: flag-sway 3.6s ease-in-out var(--d, 0s) infinite alternate;
+}
+@keyframes flag-sway { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+.hero { padding-top: calc(104px + min(8vw, 96px)); }
+@media (max-width: 640px) {
+  /* на телефоне буквы были бы слишком мелкими — просто разноцветные флажки покрупнее */
+  .bunting { top: 74px; width: 190%; max-width: none; }
+  .bunting__letter { display: none; }
+  .hero { padding-top: 150px; }
+}
+
+/* веточки рябины и дуба по нижним углам первого экрана */
+.hero__sprig { position: absolute; z-index: 1; pointer-events: none; width: clamp(130px, 17vw, 250px); height: auto; filter: drop-shadow(0 8px 10px rgba(90, 50, 10, 0.2)); }
+.hero__sprig--left { left: -18px; bottom: -10px; transform: rotate(6deg); }
+.hero__sprig--right { right: -18px; bottom: -10px; transform: rotate(-6deg); }
+@media (max-width: 640px) { .hero__sprig { width: 108px; opacity: 0.95; } .hero__sprig--left { left: -26px; } .hero__sprig--right { right: -26px; } }
+
+/* гирлянда из листьев — разделитель между разделами */
+.garland { position: relative; width: min(1180px, calc(100% - 32px)); height: 64px; margin: -34px auto; z-index: 1; pointer-events: none; }
+.garland__vine { position: absolute; inset: 0; width: 100%; height: 100%; }
+.garland__leaf { position: absolute; filter: drop-shadow(0 3px 3px rgba(90, 50, 10, 0.2)); }
+.garland__leaf--maple { width: clamp(22px, 3.2vw, 38px); height: clamp(22px, 3.2vw, 38px); }
+.garland__leaf--ovate { width: clamp(14px, 2vw, 22px); height: clamp(23px, 3.3vw, 37px); }
+.garland__berries {
+  position: absolute; width: 16px; height: 16px; transform: translate(-50%, -30%);
+  background:
+    radial-gradient(circle at 30% 30%, #ff8a6a 0 1.5px, transparent 2px) 0 0 / 8px 8px no-repeat,
+    radial-gradient(circle, #d7261e 0 3.6px, transparent 4px) 0 0 / 8px 8px no-repeat,
+    radial-gradient(circle, #e84a1c 0 3.6px, transparent 4px) 8px 1px / 8px 8px no-repeat,
+    radial-gradient(circle, #c41f18 0 3.6px, transparent 4px) 4px 7px / 8px 8px no-repeat;
+}
+@media (max-width: 640px) { .garland { margin: -22px auto; height: 44px; } }
+
+/* школьные рисунки по краям «Как это работает» */
+.section--how { overflow: clip; }
+.school-doodles { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+.section--how > .section__inner { position: relative; z-index: 1; }
+.doodle { position: absolute; height: auto; filter: drop-shadow(0 8px 10px rgba(90, 50, 10, 0.18)); }
+.doodle--apple { width: 76px; left: max(18px, calc(50% - 700px)); top: 16%; transform: rotate(-10deg); }
+.doodle--pencil { width: 150px; left: max(-20px, calc(50% - 720px)); bottom: 18%; transform: rotate(-28deg); }
+.doodle--books { width: 118px; right: max(16px, calc(50% - 700px)); top: 12%; transform: rotate(6deg); }
+.doodle--bell { width: 78px; right: max(26px, calc(50% - 680px)); bottom: 16%; transform: rotate(14deg); animation: bell-ring 5s ease-in-out infinite; transform-origin: 50% 5%; }
+@keyframes bell-ring {
+  0%, 80%, 100% { transform: rotate(14deg); }
+  84% { transform: rotate(24deg); } 88% { transform: rotate(4deg); } 92% { transform: rotate(20deg); } 96% { transform: rotate(10deg); }
+}
+@media (max-width: 1180px) {
+  .doodle--apple, .doodle--books { top: 18px; width: 58px; }
+  .doodle--pencil, .doodle--bell { display: none; }
+}
+@media (max-width: 640px) {
+  .doodle--apple { width: 46px; left: 10px; top: 20px; }
+  .doodle--books { width: 60px; right: 8px; top: 16px; }
+}
+
+/* праздничный подвал */
+.footer { position: relative; padding-top: 70px; border-top: 0; }
+.garland--footer { position: absolute; top: 0; left: 50%; transform: translateX(-50%); margin: 0; }
+.footer__festive { display: flex; align-items: center; justify-content: center; gap: clamp(8px, 3vw, 32px); }
+.footer__center { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.footer__wish { font-family: var(--font-serif); font-style: italic; font-size: clamp(22px, 3.4vw, 32px); color: #9b2f1d; text-wrap: balance; }
+.footer__sprig { width: clamp(90px, 14vw, 170px); height: auto; flex: none; }
+.footer__sprig--left { transform: scaleX(-1) rotate(-8deg); }
+.footer__sprig--right { transform: scaleX(-1) rotate(8deg); }
+.footer__inner img { width: 64px; height: 64px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bunting__flag, .doodle--bell { animation: none; }
+}
+@media (max-width: 640px) {
+  .footer__sprig { width: 62px; }
+  .footer__wish { font-size: 21px; }
+}
+.footer__center { flex: 1 1 auto; min-width: 0; max-width: 34em; }

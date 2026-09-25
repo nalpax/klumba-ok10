@@ -5,6 +5,7 @@ import { AccountProvider } from '@/components/account/AccountProvider';
 import { AdminPanel } from '@/components/admin/AdminPanel';
 import { useEventStatus } from '@/components/garden/useGarden';
 import { DEFAULT_GREETING } from '@/lib/content';
+import { LeafGarland } from './Decor';
 import { Footer } from './Footer';
 import { GardenSection } from './GardenSection';
 import { GreetingSection } from './GreetingSection';
@@ -20,7 +21,9 @@ function Page() {
       <main>
         <Hero status={status} />
         <GreetingSection greeting={DEFAULT_GREETING} />
+        <LeafGarland />
         <HowItWorks />
+        <LeafGarland />
         <GardenSection />
       </main>
       <Footer />

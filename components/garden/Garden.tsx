@@ -229,7 +229,8 @@ export function Garden({
         {screen ? null : (
         <>
         <p className="garden__count" aria-live="polite">
-          <span>Посажено</span>
+          <span aria-hidden="true">🌷</span>
+          <span className="sr-only">Посажено цветов:</span>
           <strong>{loaded ? plantings.length : '—'}</strong>
         </p>
 

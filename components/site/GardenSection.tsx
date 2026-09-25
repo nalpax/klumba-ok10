@@ -13,6 +13,7 @@ import { FLOWER_COLORS } from '@/lib/garden/palette';
 import type { Planting, Slot, Teacher } from '@/lib/garden/types';
 import { fullName, shortName } from '@/lib/names';
 import { plural } from '@/lib/plural';
+import { totalCaption } from '@/lib/total';
 
 function Bar({ id, children }: { id?: string; children: ReactNode }) {
   return (
@@ -322,6 +323,11 @@ export function GardenSection() {
             Каждый цветок — один ученик, который сказал спасибо своему учителю. Чем больше цветов, тем гуще клумба.
           </p>
         </header>
+
+        <p className="garden-total" aria-live="polite">
+          <strong>{g.loaded ? g.plantings.length : '—'}</strong>
+          <span>{totalCaption(g.plantings.length)} 🌷</span>
+        </p>
 
         <div className="garden__panel">{panel}</div>
 

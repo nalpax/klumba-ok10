@@ -90,6 +90,33 @@ function Banner({ animate }: { animate: boolean }) {
   );
 }
 
+/* ------------------------------ бабочки над клумбой ------------------------------ */
+
+const BUTTERFLIES: Array<[string, string]> = [
+  ['#f08a24', '#7a2e0c'],
+  ['#f5d547', '#8a6a0c'],
+  ['#6cb4f5', '#1d4f8a'],
+];
+
+function Butterfly({ colors: [wing, edge] }: { colors: [string, string] }) {
+  return (
+    <svg className="bfly__svg" viewBox="-20 -16 40 32" focusable="false">
+      <g className="bfly__wing bfly__wing--l">
+        <path d="M-1,-1 C-8,-15 -19,-13 -17,-4 C-16,1 -8,2 -1,0 Z" fill={wing} stroke={edge} strokeWidth="1.2" />
+        <path d="M-1,1 C-7,3 -14,6 -12,12 C-10,15 -4,10 -1,2 Z" fill={wing} stroke={edge} strokeWidth="1.2" />
+        <circle cx="-11" cy="-6" r="2" fill="#fff" opacity="0.8" />
+      </g>
+      <g className="bfly__wing bfly__wing--r">
+        <path d="M1,-1 C8,-15 19,-13 17,-4 C16,1 8,2 1,0 Z" fill={wing} stroke={edge} strokeWidth="1.2" />
+        <path d="M1,1 C7,3 14,6 12,12 C10,15 4,10 1,2 Z" fill={wing} stroke={edge} strokeWidth="1.2" />
+        <circle cx="11" cy="-6" r="2" fill="#fff" opacity="0.8" />
+      </g>
+      <ellipse cx="0" cy="1" rx="1.6" ry="8" fill="#2a1a0c" />
+      <path d="M0,-6 C-2,-11 -4,-13 -6,-14 M0,-6 C2,-11 4,-13 6,-14" stroke="#2a1a0c" strokeWidth="0.9" fill="none" />
+    </svg>
+  );
+}
+
 /**
  * Самолёт с пилотом (картинка) тянет флаг. Летит справа налево — так смотрит сам самолёт.
  * Слой живёт в координатах мира клумбы: Garden двигает и масштабирует его вместе с камерой,
@@ -108,6 +135,11 @@ export function SkyPlane({ ref }: { ref?: Ref<HTMLDivElement> }) {
 
   return (
     <div className="gb-flight" aria-hidden="true" ref={ref}>
+      {BUTTERFLIES.map((b, i) => (
+        <div key={i} className={`bfly bfly--${i + 1}`}>
+          <Butterfly colors={b} />
+        </div>
+      ))}
       <div className="gb-plane">
         <div className="gb-plane__body">
           <img className="gb-plane__img" src="brand/plane.webp" alt="" width={284} height={202} decoding="async" loading="lazy" />

@@ -9,7 +9,7 @@ import { SCHOOL } from '@/lib/content';
 import { describeFlower } from '@/lib/garden/flowers';
 import type { Planting } from '@/lib/garden/types';
 import { fullName } from '@/lib/names';
-import { plural } from '@/lib/plural';
+import { totalCaption } from '@/lib/total';
 import { defaultSiteUrl, qrSvg } from '@/lib/qr';
 
 interface Toast {
@@ -153,7 +153,7 @@ export function BigScreen() {
         </div>
         <div className="screen__count" aria-live="polite">
           <strong>{g.loaded ? count : '—'}</strong>
-          <span>{plural(count, ['цветок посажен', 'цветка посажено', 'цветов посажено'])} 🌷</span>
+          <span>{totalCaption(count)} 🌷</span>
         </div>
       </header>
 

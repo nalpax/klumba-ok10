@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { STATUS_TEXT, type EventStatus } from '@/lib/content';
 import { Bunting, OakSprig, RowanSprig } from './Decor';
+import { HeroCard } from './HeroCard';
 import { Leaf, type LeafShape } from './Leaf';
 import { SchoolBadge } from './SchoolBadge';
 
@@ -70,15 +71,7 @@ export function Hero({ status = 'open' }: { status?: EventStatus }) {
         </p>
 
         <h1 className="sr-only">С Днём учителя!</h1>
-        <figure className="hero-card">
-          <img
-            src="hero/autumn-card.jpg"
-            alt=""
-            width={736}
-            height={491}
-            fetchPriority="high"
-          />
-        </figure>
+        <HeroCard />
 
         <p className="hero__lead">Спасибо за знания, вдохновение и доброту</p>
         <a className="btn btn--lime btn--lg" href="#greeting">

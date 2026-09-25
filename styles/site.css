@@ -201,22 +201,88 @@ html:has(.site) {
 .status-pill[data-status='draft'] .status-pill__dot { background: #a99065; animation: none; }
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(76,138,23,.55); } 70%, 100% { box-shadow: 0 0 0 10px rgba(76,138,23,0); } }
 
+.hero-stage {
+  --card-w: min(640px, 86vw, calc((100svh - 400px) * 1.5));
+  --rx: 0deg; --ry: 0deg; --gx: 50%; --gy: 40%;
+  position: relative; width: var(--card-w); min-width: min(300px, 86vw); aspect-ratio: 736 / 491;
+  perspective: 1500px; margin: 14px 0 30px;
+}
+.hero-stage::before {
+  /* тёплое сияние позади открытки */
+  content: ''; position: absolute; inset: -18% -14%; z-index: -1; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(255, 196, 90, 0.55), rgba(255, 170, 60, 0.18) 60%, transparent 100%);
+  filter: blur(24px);
+}
+.hero-3d {
+  position: absolute; inset: 0; transform-style: preserve-3d;
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transition: transform 0.5s cubic-bezier(0.2, 0.7, 0.3, 1);
+  animation: hero-float 9s ease-in-out infinite;
+}
+.hero-stage.is-tilting .hero-3d { animation: none; transition-duration: 0.12s; }
+@keyframes hero-float {
+  0%, 100% { transform: rotateX(4deg) rotateY(-6deg) translateY(0); }
+  50% { transform: rotateX(-3deg) rotateY(5deg) translateY(-8px); }
+}
+
+/* стопка открыток позади */
+.hero-paper { position: absolute; inset: 0; border-radius: 22px; }
+.hero-paper--kraft {
+  transform: translateZ(-70px) rotate(6deg) translate(4%, 3%);
+  background:
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.06) 0 2px, transparent 2px 7px),
+    linear-gradient(160deg, #c9975b, #a8703a);
+  box-shadow: 0 30px 60px -24px rgba(80, 50, 10, 0.6);
+}
+.hero-paper--lined {
+  transform: translateZ(-36px) rotate(-5deg) translate(-3%, 2%);
+  background:
+    repeating-linear-gradient(180deg, transparent 0 26px, rgba(47, 111, 222, 0.16) 26px 27px),
+    linear-gradient(90deg, transparent 0 12%, rgba(200, 50, 31, 0.25) 12% calc(12% + 2px), transparent calc(12% + 2px)),
+    #fffaf0;
+  box-shadow: 0 24px 50px -20px rgba(80, 50, 10, 0.5);
+}
+
+/* сама открытка: толщина, тень, блик */
 .hero-card {
-  position: relative; isolation: isolate;
-  width: min(700px, 100%, calc((100vh - 380px) * 1.5));
-  width: min(700px, 100%, calc((100svh - 380px) * 1.5));
-  min-width: min(320px, 100%);
-  transform: rotate(-1.2deg);
+  position: absolute; inset: 0; margin: 0; border-radius: 22px; transform: rotate(-1.5deg);
+  box-shadow:
+    0 1px 0 1px rgba(255, 255, 255, 0.7),
+    0 2px 0 2px #e9dcc0, 0 4px 0 3px #d9c7a0,
+    0 50px 90px -28px rgba(80, 50, 10, 0.65), 0 0 70px -10px rgba(255, 190, 80, 0.45);
 }
-.hero-card::before {
-  content: ''; position: absolute; z-index: -1; inset: -8% -6%;
-  background: radial-gradient(closest-side, rgba(255, 196, 90, 0.4), transparent 100%);
-  filter: blur(28px);
+.hero-card img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 22px; }
+.hero-card__glare {
+  position: absolute; inset: 0; border-radius: 22px; pointer-events: none; mix-blend-mode: soft-light;
+  background: radial-gradient(60% 70% at var(--gx) var(--gy), rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0) 70%);
+  opacity: 0.8;
 }
-.hero-card img {
-  width: 100%; height: auto; border-radius: 26px;
-  box-shadow: 0 0 0 1px rgba(255,255,255,.5), 0 44px 90px -24px rgba(80,50,10,.55), 0 0 60px -10px rgba(255,190,80,.35);
+
+/* полоски скотча по верхним углам */
+.hero-tape {
+  position: absolute; top: -4%; width: 22%; height: 11%; border-radius: 3px; pointer-events: none;
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.35) 0 6px, transparent 6px 12px), rgba(242, 179, 61, 0.72);
+  box-shadow: 0 3px 8px -2px rgba(80, 50, 10, 0.35);
 }
+.hero-tape--left { left: 6%; transform: translateZ(14px) rotate(-18deg); background-color: rgba(238, 138, 43, 0.7); }
+.hero-tape--right { right: 6%; transform: translateZ(14px) rotate(16deg); background-color: rgba(76, 138, 23, 0.55); }
+
+/* листья, веточка, яблоко — «парят» перед открыткой на разной глубине */
+.hero-float { position: absolute; pointer-events: none; height: auto; filter: drop-shadow(0 16px 12px rgba(70, 40, 10, 0.32)); }
+.hero-float--maple { width: 17%; top: -13%; left: -9%; transform: translateZ(var(--z)) rotate(-28deg); }
+.hero-float--ovate { width: 6%; height: 16%; top: 18%; right: -5%; transform: translateZ(var(--z)) rotate(34deg); }
+.hero-float--maple2 { width: 11%; bottom: 22%; left: -7%; transform: translateZ(var(--z)) rotate(22deg); }
+.hero-float--sprig { width: 28%; right: -15%; bottom: -15%; transform: translateZ(var(--z)) rotate(-12deg); }
+.hero-float--apple { width: 10%; left: -3%; bottom: -9%; transform: translateZ(var(--z)) rotate(-10deg); }
+@media (max-width: 640px) {
+  .hero-stage { --card-w: 84vw; }
+  .hero-float--sprig { width: 34%; right: -10%; }
+  .hero-float--maple { left: -6%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-3d { animation: none; transform: rotateX(3deg) rotateY(-4deg); }
+}
+
 .hero__lead {
   font-family: var(--font-serif); font-style: italic; font-size: clamp(19px, 2.6vw, 24px);
   line-height: 1.4; color: #4a3826; max-width: 26em; text-wrap: balance;
@@ -777,34 +843,28 @@ html:has(.site) {
 .garden-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
 
 /*
- * Самолёт летит справа налево. Два вложенных слоя движутся одновременно:
- * .gb-flight (ширина = сцена) — от правого края к левому, .gb-plane (ширина = самолёт + флаг) —
- * ещё на собственную ширину влево. Итог: самолёт влетает из-за правого края и целиком скрывается за левым.
+ * Самолёт живёт в координатах мира клумбы (1 px = 1 единица мира): Garden задаёт слою .gb-flight
+ * translate + scale камеры, а внутри самолёт летит справа налево по небу над газоном (y ≈ 20).
  * Только transform — браузер двигает готовую картинку, ничего не перерисовывая.
  */
 .gb-flight {
-  --pw: clamp(62px, 6.6vw, 96px);
-  position: absolute; left: 0; right: 0; top: 0.6%; height: 0; z-index: 0; pointer-events: none;
-  animation: gb-track 42s linear infinite; will-change: transform;
+  position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 2; pointer-events: none;
+  transform-origin: 0 0; will-change: transform;
 }
-.gb-plane { position: absolute; left: 0; top: 0; animation: gb-self 42s linear infinite; will-change: transform; }
+.gb-plane { position: absolute; left: 0; top: 0; animation: gb-world 42s linear infinite; will-change: transform; }
+@keyframes gb-world {
+  0% { transform: translate(2140px, 16px); }
+  62%, 100% { transform: translate(-440px, 16px); }
+}
 .gb-plane__body { display: flex; align-items: flex-start; animation: gb-bob 3.2s ease-in-out infinite alternate; }
-.gb-plane__img { width: var(--pw); height: auto; flex: none; position: relative; z-index: 1; filter: drop-shadow(0 6px 6px rgba(40, 30, 10, 0.18)); }
-.gb-banner {
-  width: calc(var(--pw) * 1.75); height: auto; flex: none; overflow: visible;
-  margin-left: calc(var(--pw) * -0.05); margin-top: calc(var(--pw) * 0.12);
-  filter: drop-shadow(0 5px 5px rgba(40, 30, 10, 0.16));
-}
+.gb-plane__img { width: 118px; height: auto; flex: none; position: relative; z-index: 1; filter: drop-shadow(0 6px 6px rgba(40, 30, 10, 0.18)); }
+.gb-banner { width: 206px; height: auto; flex: none; overflow: visible; margin-left: -6px; margin-top: 14px; filter: drop-shadow(0 5px 5px rgba(40, 30, 10, 0.16)); }
 .gb-banner__text { font-family: var(--font-sans); letter-spacing: 0.01em; }
-@keyframes gb-track { 0% { transform: translateX(100%); } 62%, 100% { transform: translateX(0); } }
-@keyframes gb-self { 0% { transform: translateX(0); } 62%, 100% { transform: translateX(-100%); } }
 @keyframes gb-bob { from { transform: translateY(-4px) rotate(-0.6deg); } to { transform: translateY(5px) rotate(0.8deg); } }
-/* на телефоне газон занимает почти всю сцену — самолёт летит поверх клумбы, под счётчиком (касаниям не мешает) */
-@media (max-width: 640px) { .gb-flight { top: 58px; z-index: 2; --pw: 58px; } }
 .garden__count, .garden__controls { z-index: 3; }
 @media (prefers-reduced-motion: reduce) {
-  .gb-flight, .gb-plane, .gb-plane__body { animation: none; }
-  .gb-plane { left: 26%; }
+  .gb-plane, .gb-plane__body { animation: none; }
+  .gb-plane { transform: translate(560px, 16px); }
 }
 
 /* ---- админ-панель: текст финального экрана ---- */
@@ -946,3 +1006,99 @@ html:has(.site) {
   .footer__wish { font-size: 21px; }
 }
 .footer__center { flex: 1 1 auto; min-width: 0; max-width: 34em; }
+
+/* листья, падающие по всей странице — за содержимым */
+.page-leaves { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.site > main, .site > .footer { position: relative; z-index: 1; }
+
+/* ==========================================================================
+   Режим большого экрана (?screen) — components/screen/BigScreen.tsx
+   ========================================================================== */
+html:has(.screen) { background: #ffe9b8; }
+.screen {
+  position: fixed; inset: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: clamp(10px, 1.6vh, 20px);
+  padding: 0 clamp(16px, 2vw, 32px) clamp(16px, 2vw, 32px); overflow: hidden;
+  font-family: var(--font-sans); color: var(--ink);
+  background:
+    radial-gradient(60% 50% at 80% 0%, rgba(255, 216, 115, 0.65), transparent 70%),
+    radial-gradient(50% 60% at 0% 100%, rgba(238, 138, 43, 0.28), transparent 70%),
+    linear-gradient(180deg, #fff3d6, #ffd9a0);
+}
+.screen > :not(.page-leaves) { position: relative; z-index: 1; }
+.screen__bunting { position: absolute !important; top: 0; left: 0; right: 0; z-index: 2 !important; pointer-events: none; }
+.screen .bunting { top: -4px; width: min(1500px, 100%); }
+.screen__head {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;
+  padding-top: clamp(84px, 9vw, 128px);
+}
+.screen__brand { display: flex; align-items: center; gap: clamp(12px, 1.4vw, 22px); }
+.screen__brand img { width: clamp(56px, 5.5vw, 96px); height: auto; filter: drop-shadow(0 8px 12px rgba(90, 50, 10, 0.3)); }
+.screen__title {
+  font-family: var(--font-serif); font-style: italic; font-weight: 600; line-height: 1;
+  font-size: clamp(38px, 4.6vw, 84px); color: #9b2f1d; text-shadow: 0 2px 0 rgba(255, 255, 255, 0.6);
+}
+.screen__sub { margin-top: 6px; font-size: clamp(15px, 1.35vw, 24px); color: var(--ink-dim); font-weight: 600; }
+.screen__count {
+  display: flex; flex-direction: column; align-items: flex-end; padding: 12px 26px 14px; border-radius: 26px;
+  background: rgba(255, 255, 255, 0.72); border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 20px 50px -24px rgba(90, 50, 10, 0.55);
+}
+.screen__count strong {
+  font-size: clamp(44px, 5.4vw, 104px); line-height: 1; font-weight: 800; color: var(--accent);
+  font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+}
+.screen__count span { font-size: clamp(14px, 1.3vw, 22px); font-weight: 600; color: var(--ink-dim); }
+
+.screen__stage { position: relative; min-height: 0; }
+.garden--screen, .garden--screen .garden__stage { height: 100%; }
+.garden--screen .garden__stage {
+  aspect-ratio: auto; max-height: none; border-radius: clamp(24px, 2.4vw, 44px);
+  border: 3px solid rgba(255, 255, 255, 0.8); box-shadow: 0 40px 90px -40px rgba(60, 30, 5, 0.7);
+}
+
+.screen__toasts {
+  position: absolute; left: clamp(14px, 1.6vw, 28px); bottom: clamp(14px, 1.6vw, 28px); z-index: 4;
+  display: flex; flex-direction: column; gap: 10px; max-width: min(640px, 55%); pointer-events: none;
+}
+.screen-toast {
+  display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-radius: 20px;
+  background: rgba(255, 253, 246, 0.95); box-shadow: 0 16px 40px -14px rgba(0, 0, 0, 0.5);
+  animation: toast-in 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) both, toast-out 0.8s ease 10.2s forwards;
+}
+.screen-toast > div { display: flex; flex-direction: column; gap: 2px; }
+.screen-toast strong { font-size: clamp(16px, 1.4vw, 24px); font-weight: 800; color: #1e1609; }
+.screen-toast span { font-size: clamp(14px, 1.2vw, 20px); color: #5b4526; }
+.screen-toast__dot { width: clamp(20px, 1.8vw, 30px); height: clamp(20px, 1.8vw, 30px); border-radius: 50%; flex: none; box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(0, 0, 0, 0.12); }
+.screen-toast--info { background: linear-gradient(180deg, #fff8d6, #ffe89a); }
+@keyframes toast-in { from { transform: translateY(24px) scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes toast-out { to { transform: translateX(-30px); opacity: 0; } }
+
+.screen__qr {
+  position: absolute; right: clamp(14px, 1.6vw, 28px); bottom: clamp(14px, 1.6vw, 28px); z-index: 4;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 14px 12px; border-radius: 22px;
+  background: #fff; box-shadow: 0 18px 44px -14px rgba(0, 0, 0, 0.55);
+}
+.screen__qr-code { width: clamp(120px, 11vw, 210px); aspect-ratio: 1; }
+.screen__qr-code svg { width: 100%; height: 100%; display: block; }
+.screen__qr p { display: flex; flex-direction: column; align-items: center; text-align: center; line-height: 1.2; }
+.screen__qr strong { font-size: clamp(14px, 1.2vw, 20px); color: #9b2f1d; }
+.screen__qr span { font-size: clamp(12px, 0.95vw, 16px); color: var(--ink-dim); font-weight: 600; }
+
+.screen__tools {
+  position: fixed !important; top: 12px; right: 12px; z-index: 5 !important; display: flex; gap: 8px;
+  transition: opacity 0.4s ease;
+}
+.screen[data-chrome='off'] .screen__tools { opacity: 0; pointer-events: none; }
+.screen[data-chrome='off'] { cursor: none; }
+.screen__tools button, .screen__tools a {
+  font: inherit; font-size: 13px; font-weight: 700; padding: 8px 14px; border-radius: 999px; color: var(--ink);
+  background: rgba(255, 255, 255, 0.85); border: 1px solid var(--line-strong); text-decoration: none; cursor: pointer;
+}
+@media (max-width: 760px) {
+  .screen__head { flex-direction: column; align-items: flex-start; }
+  .screen__count { align-self: stretch; align-items: flex-start; }
+  .screen__qr { display: none; }
+  .screen__toasts { max-width: calc(100% - 28px); }
+}
+@media (prefers-reduced-motion: reduce) { .screen-toast { animation: none; } }
+.admin-screen { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line); display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }

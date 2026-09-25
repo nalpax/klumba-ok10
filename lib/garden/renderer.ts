@@ -33,6 +33,11 @@ export interface RendererOptions {
   resolveKind: (flowerId: number) => FlowerKind;
   onSelect?: (selection: Selection | null) => void;
   onCamera?: (state: CameraState) => void;
+  /**
+   * Вызывается на каждом кадре с положением камеры. Нужен слоям поверх canvas, которые должны
+   * двигаться вместе с миром клумбы (например, самолёт в небе над газоном).
+   */
+  onView?: (view: { cx: number; cy: number; zoom: number; vw: number; vh: number }) => void;
   /** Ученик коснулся свободного места в режиме выбора места. */
   onPickSlot?: (slot: Slot) => void;
   reducedMotion?: boolean;
@@ -406,6 +411,7 @@ export class GardenRenderer {
     if (this.chosen) this.drawChosen(k, ox, oy);
     if (this.highlight) this.drawRing(k, ox, oy, now);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this.opts.onView?.({ cx: cam.cx, cy: cam.cy, zoom: cam.zoom, vw, vh });
   }
 
   private drawEmblem(k: number, ox: number, oy: number) {

@@ -786,6 +786,17 @@ function QrTab() {
           <p className="admin-hint">Пример ссылки с кодом (как на карточках): {codeLink(url.trim(), 'XXXXX-XXXXX').replace(/XXXXX-XXXXX$/, '…')}</p>
         </div>
       ) : null}
+
+      <div className="admin-screen">
+        <h3 className="admin-tab__title">Режим для большого экрана</h3>
+        <p className="admin-tab__lead">
+          Для проектора в актовом зале или телевизора в холле: клумба во весь экран, крупный счётчик, QR-код для
+          посадки и объявления о каждом новом цветке — камера сама показывает его крупно.
+        </p>
+        <a className="btn btn--lime btn--sm" href={`${url.trim().replace(/\/+$/, '')}/?screen`} target="_blank" rel="noreferrer">
+          Открыть режим экрана
+        </a>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type Ref } from 'react';
 
 /* ------------------------------ флаг, развевающийся на ветру ------------------------------ */
 
@@ -90,8 +90,12 @@ function Banner({ animate }: { animate: boolean }) {
   );
 }
 
-/** Самолёт с пилотом (картинка) тянет флаг. Летит справа налево — так смотрит сам самолёт. */
-function Plane() {
+/**
+ * Самолёт с пилотом (картинка) тянет флаг. Летит справа налево — так смотрит сам самолёт.
+ * Слой живёт в координатах мира клумбы: Garden двигает и масштабирует его вместе с камерой,
+ * поэтому самолёт всегда в небе над газоном, а при приближении уходит из кадра вместе с небом.
+ */
+export function SkyPlane({ ref }: { ref?: Ref<HTMLDivElement> }) {
   // флаг «колышется» только если человек не просил поменьше анимаций
   const [animate, setAnimate] = useState(false);
   useEffect(() => {
@@ -103,7 +107,7 @@ function Plane() {
   }, []);
 
   return (
-    <div className="gb-flight" aria-hidden="true">
+    <div className="gb-flight" aria-hidden="true" ref={ref}>
       <div className="gb-plane">
         <div className="gb-plane__body">
           <img className="gb-plane__img" src="brand/plane.webp" alt="" width={284} height={202} decoding="async" loading="lazy" />
@@ -122,7 +126,6 @@ function Plane() {
  */
 export function GardenBackdrop() {
   return (
-    <>
     <svg
       className="garden-backdrop"
       viewBox="0 0 1600 900"
@@ -206,7 +209,5 @@ export function GardenBackdrop() {
       />
 
     </svg>
-    <Plane />
-    </>
   );
 }

@@ -3,7 +3,7 @@
 import { useEffect, useImperativeHandle, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
 import { SCHOOL } from '@/lib/content';
 import { describeFlower } from '@/lib/garden/flowers';
-import { GardenBackdrop } from './GardenBackdrop';
+import { GardenBackdrop, SkyPlane } from './GardenBackdrop';
 import { GardenRenderer, type CameraState, type Selection } from '@/lib/garden/renderer';
 import type { FlowerColor, FlowerKind, FlowerType, Planting, Slot, Teacher } from '@/lib/garden/types';
 import { fullName } from '@/lib/names';
@@ -13,6 +13,8 @@ export interface GardenHandle {
   focusPlanting: (id: number) => void;
   /** Показать клумбу целиком. */
   fit: () => void;
+  /** Вернуться к стартовому виду. */
+  home: () => void;
   /** Показать и подсветить подсолнух в центре (цветок директора). */
   focusEmblem: () => void;
 }
@@ -35,6 +37,8 @@ interface GardenProps {
   focusTeacherId?: number | null;
   /** элементы поверх клумбы (панель выбора места и т. п.) */
   overlay?: ReactNode;
+  /** Режим большого экрана: без кнопок, счётчика и подсказки — их рисует сам экран. */
+  screen?: boolean;
   ref?: Ref<GardenHandle>;
 }
 
@@ -50,9 +54,11 @@ export function Garden({
   onPickSlot,
   focusTeacherId = null,
   overlay,
+  screen = false,
   ref,
 }: GardenProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const planeRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<GardenRenderer | null>(null);
   const seen = useRef<Set<number>>(new Set());
   const initialised = useRef(false);
@@ -80,6 +86,13 @@ export function Garden({
       onSelect: setSelection,
       onCamera: setCamera,
       onPickSlot: (slot) => onPickRef.current?.(slot),
+      // самолёт летит в небе мира клумбы: сдвигаем и масштабируем его слой вместе с камерой
+      onView: ({ cx, cy, zoom, vw, vh }) => {
+        const el = planeRef.current;
+        if (!el) return;
+        const t = `translate(${(vw / 2 - cx * zoom).toFixed(1)}px, ${(vh / 2 - cy * zoom).toFixed(1)}px) scale(${zoom.toFixed(4)})`;
+        if (el.style.transform !== t) el.style.transform = t;
+      },
       reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     });
     rendererRef.current = renderer;
@@ -165,6 +178,7 @@ export function Garden({
         rendererRef.current?.focusOn(id, 2.6);
       },
       fit: () => rendererRef.current?.fitView(),
+      home: () => rendererRef.current?.homeView(),
       focusEmblem: () => {
         rendererRef.current?.highlightEmblem();
         rendererRef.current?.focusEmblem();
@@ -200,7 +214,7 @@ export function Garden({
   const tipLeft = selection ? Math.min(Math.max(selection.x, 110), Math.max(stageWidth - 110, 110)) : 0;
 
   return (
-    <div className="garden">
+    <div className={screen ? 'garden garden--screen' : 'garden'}>
       <div className="garden__stage" id="garden-stage" data-picking={picking ? 'true' : undefined}>
         <GardenBackdrop />
         <canvas
@@ -210,7 +224,10 @@ export function Garden({
           role="img"
           aria-label={`Общая клумба: посажено цветов — ${plantings.length}. Стрелки двигают вид, плюс и минус меняют масштаб.`}
         />
+        <SkyPlane ref={planeRef} />
 
+        {screen ? null : (
+        <>
         <p className="garden__count" aria-live="polite">
           <span>Посажено</span>
           <strong>{loaded ? plantings.length : '—'}</strong>
@@ -227,6 +244,8 @@ export function Garden({
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
           </button>
         </div>
+        </>
+        )}
 
         {selection && tip && !picking ? (
           <div
@@ -246,10 +265,12 @@ export function Garden({
         {overlay}
       </div>
 
+      {screen ? null : (
       <p className="garden__hint">
         <span className="hint-fine">Нажмите на цветок, чтобы узнать, для какого он учителя. Приближение: кнопки, двойной клик или Ctrl + колесо.</span>
         <span className="hint-coarse">Коснитесь цветка, чтобы узнать, для какого он учителя. Приближайте двумя пальцами.</span>
       </p>
+      )}
     </div>
   );
 }

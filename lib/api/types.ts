@@ -2,9 +2,8 @@ import type { ClosingContent, EventStatus } from '@/lib/content';
 import type { FlowerColor, FlowerType, Planting, Slot, Teacher } from '@/lib/garden/types';
 
 /**
- * Единый интерфейс «бэкенда» для сайта. Сейчас есть демо-реализация (lib/api/demo.ts),
- * на этапе Realtime добавится реализация на Supabase: каждый метод соответствует одной SQL-функции
- * из supabase/migrations/0003_functions.sql.
+ * Единый интерфейс «бэкенда» для сайта. Две реализации с одинаковыми правилами (lib/core/engine.ts):
+ * lib/api/live.ts — настоящий сервер (app/api), lib/api/demo.ts — демо в памяти браузера.
  */
 export type ApiError =
   | 'closed'
@@ -18,7 +17,8 @@ export type ApiError =
   | 'garden_full'
   | 'forbidden'
   | 'validation'
-  | 'has_plantings'
+  | 'director'
+  | 'unauthorized'
   | 'network';
 
 export interface TeacherInfo {
@@ -28,6 +28,7 @@ export interface TeacherInfo {
   lastName: string;
   subject: string;
   photoUrl: string | null;
+  isDirector?: boolean;
 }
 
 export type LoginResult =
@@ -35,7 +36,8 @@ export type LoginResult =
   | { ok: true; role: 'student'; status: 'unused' }
   | { ok: true; role: 'student'; status: 'used'; planting: Planting | null }
   | { ok: true; role: 'teacher'; teacher: TeacherInfo; planted: number; opened: boolean }
-  | { ok: true; role: 'admin' };
+  /** token — ключ сессии администратора: с ним идут все admin-запросы. Само слово-пароль в браузере не хранится. */
+  | { ok: true; role: 'admin'; token: string };
 
 export interface PlantInput {
   code: string;
@@ -56,6 +58,8 @@ export interface GardenSnapshot {
   flowers: FlowerType[];
   colors: FlowerColor[];
   plantings: Planting[];
+  /** версия метаданных (см. GardenState.version) */
+  version: number;
 }
 
 /** Данные формы «добавить/изменить учителя» в админке. id — только при редактировании. */
@@ -69,6 +73,7 @@ export interface TeacherInput {
   flowerIds: number[];
   /** Личное пожелание для открытки. Пусто — покажется один из запасных текстов (см. lib/wishes.ts). */
   wish: string;
+  isDirector?: boolean;
 }
 
 export interface AdminStats {
@@ -92,6 +97,10 @@ export interface Api {
   load(): Promise<GardenSnapshot>;
   /** Новые цветы в реальном времени. Возвращает функцию отписки. */
   subscribe(onPlanting: (p: Planting) => void): () => void;
+  /** Вернуть сессию администратора по сохранённому ключу. false — ключ устарел. */
+  restoreAdmin(token: string): Promise<boolean>;
+  /** Завершить сессию администратора. */
+  adminLogout(): Promise<void>;
   /** Свободные места (нужны только в режиме выбора места). */
   freeSlots(): Promise<Slot[]>;
   login(code: string): Promise<LoginResult>;
@@ -108,7 +117,8 @@ export interface Api {
   /** Полные данные учителей для админки (с пожеланием) — публичный load() его не отдаёт. */
   adminListTeachers(): Promise<TeacherInput[]>;
   adminSaveTeacher(input: TeacherInput): Promise<AdminTeacherResult>;
-  adminDeleteTeacher(id: number): Promise<AdminResult>;
+  /** Удаляет учителя вместе со всеми его цветами; коды учеников, чьи цветы пропали, снова становятся свободными. */
+  adminDeleteTeacher(id: number): Promise<{ ok: false; error: ApiError } | { ok: true; removed: number }>;
   /** Коды на посадку для класса. Общее число ограничено числом мест на клумбе. */
   adminGenerateStudentCodes(count: number, label: string): Promise<{ ok: true; codes: string[] } | { ok: false; error: ApiError }>;
   /** Личный код учителя для входа. Если код уже был, старый перестаёт действовать. */
@@ -132,6 +142,7 @@ export const ERROR_TEXT: Record<ApiError, string> = {
   garden_full: 'На клумбе не осталось свободных мест.',
   forbidden: 'Недостаточно прав для этого действия.',
   validation: 'Проверьте, что все поля заполнены верно.',
-  has_plantings: 'Нельзя удалить: для этого учителя уже посажены цветы.',
+  director: 'Директора удалить нельзя — можно только изменить.',
+  unauthorized: 'Сессия администратора закончилась. Войдите заново.',
   network: 'Нет связи. Проверьте интернет и попробуйте ещё раз.',
 };

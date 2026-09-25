@@ -20,6 +20,9 @@ export const KIND_SPECS: Record<FlowerKind, KindSpec> = {
   daisy: { label: 'Ромашка', gender: 'f', stemH: 54, headR: 18 },
   cornflower: { label: 'Василёк', gender: 'm', stemH: 70, headR: 16 },
   sunflower: { label: 'Подсолнух', gender: 'm', stemH: 78, headR: 22 },
+  aster: { label: 'Астра', gender: 'f', stemH: 60, headR: 17 },
+  chrysanthemum: { label: 'Хризантема', gender: 'f', stemH: 56, headR: 17 },
+  bellflower: { label: 'Колокольчик', gender: 'm', stemH: 68, headR: 15 },
 };
 
 /** Красный → красная (для женского рода), Синий → синяя. */
@@ -158,6 +161,32 @@ export function paintBody(ctx: Ctx, kind: FlowerKind, sv: number): void {
       const p2 = stemPoint(h, lean, 0.62);
       leaf(ctx, p1.x, p1.y, 1.2 * m, 32, 15, 4 * m, 0.05);
       leaf(ctx, p2.x, p2.y, -1.15 * m, 28, 13, -4 * m, 0.15);
+      break;
+    }
+    case 'aster': {
+      leaf(ctx, 0, -1, -0.6 * m, 30, 4.5, -4 * m, 0.25);
+      leaf(ctx, 0, -1, 0.5 * m, 27, 4, 4 * m, 0.3);
+      stem(ctx, h, lean, 2.1);
+      const p1 = stemPoint(h, lean, 0.5);
+      leaf(ctx, p1.x, p1.y, 1.0 * m, 20, 4, 3 * m, 0.3);
+      break;
+    }
+    case 'chrysanthemum': {
+      leaf(ctx, 0, -1, -0.7 * m, 24, 7, -4 * m, 0.35);
+      leaf(ctx, 0, -1, 0.62 * m, 22, 6.5, 4 * m, 0.4);
+      stem(ctx, h, lean, 2.4);
+      const p1 = stemPoint(h, lean, 0.45);
+      const p2 = stemPoint(h, lean, 0.68);
+      leaf(ctx, p1.x, p1.y, 1.1 * m, 20, 7.5, 3 * m, 0.35);
+      leaf(ctx, p2.x, p2.y, -1.05 * m, 17, 6.5, -3 * m, 0.4);
+      break;
+    }
+    case 'bellflower': {
+      leaf(ctx, 0, -1, -0.45 * m, 34, 3.4, -4 * m, 0.4);
+      leaf(ctx, 0, -1, 0.4 * m, 30, 3.2, 4 * m, 0.45);
+      stem(ctx, h, lean, 1.8);
+      const p1 = stemPoint(h, lean, 0.55);
+      leaf(ctx, p1.x, p1.y, -1.0 * m, 16, 2.6, -2 * m, 0.45);
       break;
     }
   }
@@ -438,6 +467,136 @@ function sunflowerHead(ctx: Ctx, color: string, sv: number) {
   }
 }
 
+function asterHead(ctx: Ctx, color: string, sv: number) {
+  const rot = sv * 0.3;
+  const e = edge(color);
+  const ring = (n: number, len: number, w: number, fill: string, off: number) => {
+    for (let i = 0; i < n; i++) {
+      ctx.save();
+      ctx.rotate(rot + off + (i * TAU) / n);
+      ctx.beginPath();
+      ctx.moveTo(0, -3);
+      ctx.quadraticCurveTo(w, -len * 0.55, 0, -len);
+      ctx.quadraticCurveTo(-w, -len * 0.55, 0, -3);
+      ctx.closePath();
+      ctx.fillStyle = fill;
+      ctx.fill();
+      ctx.strokeStyle = e;
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+      ctx.restore();
+    }
+  };
+  ring(24, 16.5, 2.3, darken(color, 0.12), 0);
+  ring(18, 12.5, 2.1, color, TAU / 48);
+  ring(12, 8.5, 1.9, lighten(color, 0.22), TAU / 30);
+  ctx.beginPath();
+  ctx.arc(0, 0, 4.4, 0, TAU);
+  const g = ctx.createRadialGradient(-1, -1, 0.4, 0, 0, 4.6);
+  g.addColorStop(0, '#fff3a0');
+  g.addColorStop(1, '#e0a800');
+  ctx.fillStyle = g;
+  ctx.fill();
+}
+
+function chrysanthemumHead(ctx: Ctx, color: string, sv: number) {
+  const rot = sv * 0.4;
+  const e = edge(color);
+  const layers = [
+    { r: 11.5, n: 16, len: 7.2, w: 3.1, c: darken(color, 0.22) },
+    { r: 8.6, n: 14, len: 6.6, w: 3, c: darken(color, 0.08) },
+    { r: 5.8, n: 11, len: 5.8, w: 2.8, c: color },
+    { r: 3.2, n: 8, len: 4.8, w: 2.4, c: lighten(color, 0.18) },
+  ];
+  ctx.beginPath();
+  ctx.arc(0, 0, 15.5, 0, TAU);
+  ctx.fillStyle = darken(color, 0.35);
+  ctx.fill();
+  layers.forEach((l, li) => {
+    for (let i = 0; i < l.n; i++) {
+      const a = rot + li * 0.37 + (i * TAU) / l.n;
+      ctx.save();
+      ctx.rotate(a);
+      ctx.translate(0, -l.r);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, l.w, l.len * 0.62, 0, 0, TAU);
+      ctx.fillStyle = l.c;
+      ctx.fill();
+      ctx.strokeStyle = e;
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+      ctx.restore();
+    }
+  });
+  ctx.beginPath();
+  ctx.arc(0, 0, 2.6, 0, TAU);
+  ctx.fillStyle = lighten(color, 0.32);
+  ctx.fill();
+}
+
+function bellflowerHead(ctx: Ctx, color: string, sv: number) {
+  const tilt = sv === 0 ? 0.28 : -0.22;
+  const dark = darken(color, 0.3);
+  const light = lighten(color, 0.25);
+  const e = edge(color);
+  // цветоножка: колокольчик висит, чуть наклонившись
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(tilt * 14, -9, tilt * 20, -6);
+  ctx.strokeStyle = '#3f8f3a';
+  ctx.lineWidth = 1.6;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.save();
+  ctx.translate(tilt * 20, -6);
+  ctx.rotate(tilt);
+  // чашечка
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 4.2, 2.6, 0, 0, TAU);
+  ctx.fillStyle = '#2e8b3a';
+  ctx.fill();
+  // колокол
+  ctx.beginPath();
+  ctx.moveTo(-4.5, 0.5);
+  ctx.bezierCurveTo(-6.5, 6, -8, 11, -12.5, 17);
+  ctx.lineTo(-8, 15.4);
+  ctx.lineTo(-5.5, 18.6);
+  ctx.lineTo(-2.4, 16.2);
+  ctx.lineTo(0, 19.4);
+  ctx.lineTo(2.4, 16.2);
+  ctx.lineTo(5.5, 18.6);
+  ctx.lineTo(8, 15.4);
+  ctx.lineTo(12.5, 17);
+  ctx.bezierCurveTo(8, 11, 6.5, 6, 4.5, 0.5);
+  ctx.closePath();
+  const g = ctx.createLinearGradient(-10, 0, 10, 18);
+  g.addColorStop(0, light);
+  g.addColorStop(0.55, color);
+  g.addColorStop(1, dark);
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.strokeStyle = e;
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+  // прожилки
+  ctx.strokeStyle = rgba(dark, 0.55);
+  ctx.lineWidth = 0.6;
+  for (const x of [-3, 3]) {
+    ctx.beginPath();
+    ctx.moveTo(x * 0.6, 2);
+    ctx.quadraticCurveTo(x * 1.3, 9, x * 1.9, 16);
+    ctx.stroke();
+  }
+  // пестик
+  ctx.beginPath();
+  ctx.moveTo(0, 12);
+  ctx.lineTo(0, 21);
+  ctx.strokeStyle = '#f3e6a0';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+}
+
 /** Головка цветка. Начало координат — верхушка стебля. */
 export function paintHead(ctx: Ctx, kind: FlowerKind, color: string, sv: number): void {
   switch (kind) {
@@ -453,5 +612,11 @@ export function paintHead(ctx: Ctx, kind: FlowerKind, color: string, sv: number)
       return cornflowerHead(ctx, color, sv);
     case 'sunflower':
       return sunflowerHead(ctx, color, sv);
+    case 'aster':
+      return asterHead(ctx, color, sv);
+    case 'chrysanthemum':
+      return chrysanthemumHead(ctx, color, sv);
+    case 'bellflower':
+      return bellflowerHead(ctx, color, sv);
   }
 }

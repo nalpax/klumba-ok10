@@ -8,16 +8,35 @@ import { Modal } from '@/components/ui/Modal';
 import { ERROR_TEXT, getApi, type AdminResult, type AdminStats, type TeacherInput } from '@/lib/api';
 import { formatCode } from '@/lib/codes';
 import { DEFAULT_CLOSING, STATUS_TEXT, type ClosingContent, type EventStatus } from '@/lib/content';
+import { ALL_FLOWER_IDS } from '@/lib/garden/catalog';
 import { FLOWER_COLORS } from '@/lib/garden/palette';
+import { codeLink, defaultSiteUrl, printCodeCards, printPoster, qrPng } from '@/lib/qr';
 import type { FlowerType } from '@/lib/garden/types';
 import { fullName } from '@/lib/names';
 import { plural } from '@/lib/plural';
 
-type Tab = 'event' | 'teachers' | 'codes';
+type Tab = 'event' | 'teachers' | 'codes' | 'qr';
 
+// новому учителю по умолчанию доступны все цветы — ученикам есть из чего выбрать
 const EMPTY_TEACHER: TeacherInput = {
-  firstName: '', middleName: '', lastName: '', subject: '', color: FLOWER_COLORS[0].hex, flowerIds: [], wish: '',
+  firstName: '', middleName: '', lastName: '', subject: '', color: FLOWER_COLORS[0].hex, flowerIds: [...ALL_FLOWER_IDS], wish: '',
 };
+
+/** Окно для печати открываем сразу по нажатию (иначе браузер его заблокирует), а заполняем, когда готовы QR. */
+function openPrintWindow(): Window | null {
+  const win = window.open('', '_blank');
+  if (win) win.document.write('<p style="font:16px sans-serif;padding:20px">Готовим QR-коды…</p>');
+  return win;
+}
+
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
 const ACCENT_SWATCHES = FLOWER_COLORS.slice(0, 10);
 
 /** Панель администратора: статус посадки, учителя, коды. Открывается поверх сайта отдельным окном. */
@@ -35,8 +54,11 @@ export function AdminPanel() {
     getApi()
       .adminStats()
       .then(setStats)
-      .catch(() => {});
-  }, []);
+      .catch((e: Error) => {
+        // ключ сессии устарел (например, сменили пароль) — выходим, чтобы можно было войти заново
+        if (e.message === 'unauthorized') logout();
+      });
+  }, [logout]);
   const refreshTeachers = useCallback(() => {
     getApi()
       .adminListTeachers()
@@ -112,6 +134,9 @@ export function AdminPanel() {
         <button type="button" role="tab" aria-selected={tab === 'codes'} onClick={() => setTab('codes')}>
           Коды ученикам
         </button>
+        <button type="button" role="tab" aria-selected={tab === 'qr'} onClick={() => setTab('qr')}>
+          QR-код сайта
+        </button>
       </div>
 
       {tab === 'event' && stats ? (
@@ -129,9 +154,18 @@ export function AdminPanel() {
         />
       ) : null}
       {tab === 'teachers' ? (
-        <TeachersTab teachers={teachers} flowers={flowers} onChanged={() => { refreshTeachers(); refreshStats(); }} />
+        <TeachersTab
+          teachers={teachers}
+          flowers={flowers}
+          byTeacher={stats?.byTeacher ?? {}}
+          onChanged={() => {
+            refreshTeachers();
+            refreshStats();
+          }}
+        />
       ) : null}
       {tab === 'codes' && stats ? <CodesTab stats={stats} onGenerated={refreshStats} /> : null}
+      {tab === 'qr' ? <QrTab /> : null}
     </Modal>
   );
 }
@@ -268,17 +302,20 @@ function EventTab({
 function TeachersTab({
   teachers,
   flowers,
+  byTeacher,
   onChanged,
 }: {
   teachers: TeacherInput[] | null;
   flowers: FlowerType[];
+  byTeacher: Record<number, number>;
   onChanged: () => void;
 }) {
   const [editing, setEditing] = useState<TeacherInput | 'new' | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [rowError, setRowError] = useState<{ id: number; text: string } | null>(null);
   const [busyId, setBusyId] = useState<number | 'new' | null>(null);
-  const [revealedCode, setRevealedCode] = useState<string | null>(null);
+  const [revealedCode, setRevealedCode] = useState<{ code: string; name: string } | null>(null);
+  const [copied, setCopied] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   const startEditing = (t: TeacherInput | 'new') => {
@@ -297,18 +334,20 @@ function TeachersTab({
           setEditing(null);
           onChanged();
           setNotice(`Сохранено: ${name}.`);
-          if (code) setRevealedCode(code);
+          if (code) setRevealedCode({ code, name });
         }}
       />
     );
   }
 
-  const askCode = async (id: number) => {
+  const askCode = async (id: number, name: string) => {
     setNotice(null);
+    setCopied(false);
     setBusyId(id);
     const res = await getApi().adminGenerateTeacherCode(id);
     setBusyId(null);
-    if (res.ok) setRevealedCode(res.code);
+    if (res.ok) setRevealedCode({ code: res.code, name });
+    else setRowError({ id, text: ERROR_TEXT[res.error] });
   };
 
   const doDelete = async (id: number, name: string) => {
@@ -321,8 +360,18 @@ function TeachersTab({
       return;
     }
     setConfirmDeleteId(null);
-    setNotice(`Удалено: ${name}.`);
+    setNotice(
+      res.removed > 0
+        ? `Удалено: ${name} и ${res.removed} ${plural(res.removed, ['цветок', 'цветка', 'цветов'])} с клумбы. Коды этих учеников снова свободны.`
+        : `Удалено: ${name}.`,
+    );
     onChanged();
+  };
+
+  const printTeacherCard = async () => {
+    if (!revealedCode) return;
+    const win = openPrintWindow();
+    if (win) await printCodeCards(win, defaultSiteUrl(), [revealedCode.code], `Открытка для: ${revealedCode.name}`);
   };
 
   return (
@@ -344,12 +393,26 @@ function TeachersTab({
       ) : null}
 
       {revealedCode ? (
-        <p className="admin-code-reveal">
-          Код для входа: <strong>{formatCode(revealedCode)}</strong> — сохраните его сейчас, второй раз он не покажется.
-          <button type="button" onClick={() => setRevealedCode(null)}>
-            Скрыть
-          </button>
-        </p>
+        <div className="admin-code-reveal">
+          <p>
+            Код для входа ({revealedCode.name}): <strong>{formatCode(revealedCode.code)}</strong> — сохраните его сейчас,
+            второй раз он не покажется. Старый код этого человека больше не действует.
+          </p>
+          <div className="admin-code-reveal__buttons">
+            <button
+              type="button"
+              onClick={async () => setCopied(await copyText(formatCode(revealedCode.code)))}
+            >
+              {copied ? 'Скопировано ✓' : 'Копировать'}
+            </button>
+            <button type="button" onClick={printTeacherCard}>
+              Карточка с QR
+            </button>
+            <button type="button" onClick={() => setRevealedCode(null)}>
+              Скрыть
+            </button>
+          </div>
+        </div>
       ) : null}
 
       {teachers === null ? (
@@ -357,12 +420,17 @@ function TeachersTab({
       ) : (
         <ul className="admin-teacher-list">
           {teachers.map((t) => (
-            <li key={t.id} className="admin-teacher-row">
+            <li key={t.id} className={`admin-teacher-row${t.isDirector ? ' admin-teacher-row--director' : ''}`}>
               <span className="admin-teacher-row__dot" style={{ background: t.color }} aria-hidden="true" />
               <span className="admin-teacher-row__text">
-                <strong>{fullName(t)}</strong>
+                <strong>
+                  {t.isDirector ? '🌻 ' : ''}
+                  {fullName(t)}
+                </strong>
                 <span>
-                  {t.subject} · {t.flowerIds.length} {plural(t.flowerIds.length, ['цветок', 'цветка', 'цветов'])}
+                  {t.subject} · посажено {byTeacher[t.id!] ?? 0} · на выбор {t.flowerIds.length}{' '}
+                  {plural(t.flowerIds.length, ['цветок', 'цветка', 'цветов'])}
+                  {t.isDirector ? ' · центральный подсолнух' : ''}
                   {t.wish.trim() ? '' : ' · без личного пожелания'}
                 </span>
               </span>
@@ -383,7 +451,11 @@ function TeachersTab({
                   </>
                 ) : confirmDeleteId === t.id ? (
                   <>
-                    <span className="admin-teacher-row__confirm">Удалить?</span>
+                    <span className="admin-teacher-row__confirm">
+                      {(byTeacher[t.id!] ?? 0) > 0
+                        ? `Удалить вместе с ${byTeacher[t.id!]} ${plural(byTeacher[t.id!], ['цветком', 'цветами', 'цветами'])}?`
+                        : 'Удалить?'}
+                    </span>
                     <button
                       type="button"
                       className="btn btn--ghost btn--sm"
@@ -398,23 +470,33 @@ function TeachersTab({
                   </>
                 ) : (
                   <>
-                    <button type="button" className="icon-btn" title="Код для входа" onClick={() => askCode(t.id!)} disabled={busyId === t.id}>
-                      🔑
-                    </button>
-                    <button type="button" className="icon-btn" title="Изменить" onClick={() => startEditing(t)}>
-                      ✎
-                    </button>
                     <button
                       type="button"
                       className="icon-btn"
-                      title="Удалить"
-                      onClick={() => {
-                        setConfirmDeleteId(t.id!);
-                        setRowError(null);
-                      }}
+                      title="Новый код для входа"
+                      aria-label={`Новый код для входа: ${fullName(t)}`}
+                      onClick={() => askCode(t.id!, fullName(t))}
+                      disabled={busyId === t.id}
                     >
-                      🗑
+                      🔑
                     </button>
+                    <button type="button" className="icon-btn" title="Изменить" aria-label={`Изменить: ${fullName(t)}`} onClick={() => startEditing(t)}>
+                      ✎
+                    </button>
+                    {t.isDirector ? null : (
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        title="Удалить вместе с цветами"
+                        aria-label={`Удалить: ${fullName(t)}`}
+                        onClick={() => {
+                          setConfirmDeleteId(t.id!);
+                          setRowError(null);
+                        }}
+                      >
+                        🗑
+                      </button>
+                    )}
                   </>
                 )}
               </span>
@@ -554,7 +636,14 @@ function CodesTab({ stats, onGenerated }: { stats: AdminStats; onGenerated: () =
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [codes, setCodes] = useState<string[] | null>(null);
+  const [codesLabel, setCodesLabel] = useState('');
   const [csvBusy, setCsvBusy] = useState(false);
+
+  const printCards = async () => {
+    if (!codes) return;
+    const win = openPrintWindow();
+    if (win) await printCodeCards(win, defaultSiteUrl(), codes, 'Посади цветок для учителя 🌷', codesLabel);
+  };
 
   const generate = async () => {
     setBusy(true);
@@ -566,14 +655,22 @@ function CodesTab({ stats, onGenerated }: { stats: AdminStats; onGenerated: () =
       return;
     }
     setCodes(res.codes);
+    setCodesLabel(label.trim());
     onGenerated();
   };
 
   const downloadCsv = async () => {
     setCsvBusy(true);
-    const csv = await getApi().adminExportCodes();
+    const csv = await getApi()
+      .adminExportCodes()
+      .catch(() => null);
     setCsvBusy(false);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    if (csv === null) {
+      setError(ERROR_TEXT.network);
+      return;
+    }
+    // BOM — чтобы Excel открыл русские буквы правильно
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -623,12 +720,72 @@ function CodesTab({ stats, onGenerated }: { stats: AdminStats; onGenerated: () =
             value={codes.join('\n')}
             onFocus={(e: { currentTarget: HTMLTextAreaElement }) => e.currentTarget.select()}
           />
+          <div className="dialog__buttons">
+            <button type="button" className="btn btn--lime btn--sm" onClick={printCards}>
+              Распечатать карточки с QR
+            </button>
+            <span className="admin-hint">На каждой карточке — код и QR: ученик наводит камеру и сразу попадает на сайт уже со своим кодом.</span>
+          </div>
         </div>
       ) : null}
 
       <button type="button" className="btn btn--ghost admin-csv-btn" onClick={downloadCsv} disabled={csvBusy}>
         {csvBusy ? 'Готовим файл…' : 'Скачать все коды (CSV)'}
       </button>
+    </div>
+  );
+}
+
+function QrTab() {
+  const [url, setUrl] = useState(() => defaultSiteUrl());
+  const [png, setPng] = useState<string | null>(null);
+  const valid = /^https?:\/\/[^\s]+$/i.test(url.trim());
+
+  useEffect(() => {
+    let alive = true;
+    if (!valid) {
+      setPng(null);
+      return;
+    }
+    qrPng(url.trim())
+      .then((d) => alive && setPng(d))
+      .catch(() => alive && setPng(null));
+    return () => {
+      alive = false;
+    };
+  }, [url, valid]);
+
+  const poster = async () => {
+    const win = openPrintWindow();
+    if (win) await printPoster(win, url.trim());
+  };
+
+  return (
+    <div className="admin-tab">
+      <p className="admin-tab__lead">
+        QR-код ведёт на главную страницу сайта. Повесьте плакат в школе или покажите QR на экране — ученикам не придётся
+        набирать адрес. Коды учеников и учителей тоже можно распечатать карточками с QR (разделы «Коды ученикам» и «Учителя»):
+        такой QR сразу открывает сайт с уже введённым кодом.
+      </p>
+      <label className="field">
+        <span className="field__label">Адрес сайта</span>
+        <input className="field__input" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://klumba-ok10.ru" />
+      </label>
+      {!valid ? <p className="form-error">Адрес должен начинаться с https:// (или http://).</p> : null}
+      {png ? (
+        <div className="admin-qr">
+          <img src={png} alt={`QR-код: ${url}`} width={220} height={220} />
+          <div className="dialog__buttons">
+            <a className="btn btn--lime btn--sm" href={png} download="klumba-qr.png">
+              Скачать PNG
+            </a>
+            <button type="button" className="btn btn--ghost btn--sm" onClick={poster}>
+              Плакат для печати
+            </button>
+          </div>
+          <p className="admin-hint">Пример ссылки с кодом (как на карточках): {codeLink(url.trim(), 'XXXXX-XXXXX').replace(/XXXXX-XXXXX$/, '…')}</p>
+        </div>
+      ) : null}
     </div>
   );
 }

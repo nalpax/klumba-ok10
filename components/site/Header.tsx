@@ -19,7 +19,7 @@ export function Header() {
         <a href="#garden">Клумба</a>
       </nav>
       <div className="nav__actions">
-        <button type="button" className="btn btn--lime btn--sm" onClick={isAdmin ? openAdminPanel : openDialog}>
+        <button type="button" className="btn btn--lime btn--sm" onClick={() => (isAdmin ? openAdminPanel() : openDialog())}>
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             {isAdmin ? (
               <path d="M4 13.5 9 4l1.8 3.4L12 5l1.2 2.4L15 4l5 9.5M4 13.5l1.4 6.5h13.2l1.4-6.5M4 13.5h16" />

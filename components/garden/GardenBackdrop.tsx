@@ -1,11 +1,128 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+
+/* ------------------------------ флаг, развевающийся на ветру ------------------------------ */
+
+const BW = 420; // viewBox флага
+const BH = 120;
+const X0 = 34; // где начинается полотнище (левее — верёвки к самолёту)
+const X1 = 410;
+const HALF = 27; // половина высоты полотнища
+const STEPS = 20;
+
+/** Средняя линия полотнища: чем дальше от самолёта, тем сильнее волна. */
+function midY(x: number, phase: number): number {
+  const t = (x - X0) / (X1 - X0);
+  const amp = 2 + 10 * t;
+  return BH / 2 + amp * Math.sin((x / 150) * Math.PI * 2 - phase) - 2 * t;
+}
+
+function bannerPath(phase: number): string {
+  const top: string[] = [];
+  const bottom: string[] = [];
+  for (let i = 0; i <= STEPS; i++) {
+    const x = X0 + ((X1 - X0) * i) / STEPS;
+    const y = midY(x, phase);
+    top.push(`${x.toFixed(1)},${(y - HALF).toFixed(1)}`);
+    bottom.unshift(`${x.toFixed(1)},${(y + HALF).toFixed(1)}`);
+  }
+  return `M${top.join(' L')} L${bottom.join(' L')} Z`;
+}
+
+function midPath(phase: number): string {
+  const pts: string[] = [];
+  for (let i = 0; i <= STEPS; i++) {
+    const x = X0 + 10 + ((X1 - X0 - 20) * i) / STEPS;
+    pts.push(`${x.toFixed(1)},${(midY(x, phase) + 6).toFixed(1)}`);
+  }
+  return `M${pts.join(' L')}`;
+}
+
+/** Складка: тень-полоса на полотнище, изгибается вместе с волной. */
+function foldPath(phase: number, x: number): string {
+  const y = midY(x, phase);
+  return `M${x.toFixed(1)},${(y - HALF).toFixed(1)} L${(x + 18).toFixed(1)},${(midY(x + 18, phase) - HALF).toFixed(1)} L${(x + 18).toFixed(1)},${(midY(x + 18, phase) + HALF).toFixed(1)} L${x.toFixed(1)},${(y + HALF).toFixed(1)} Z`;
+}
+
+const PHASES = [0, 1, 2, 3, 4].map((i) => (i * Math.PI) / 2);
+const BANNER_FRAMES = PHASES.map(bannerPath).join(';');
+const MID_FRAMES = PHASES.map(midPath).join(';');
+const ROPE_TOP = PHASES.map((p) => `M4,46 L${X0},${(midY(X0, p) - HALF + 3).toFixed(1)}`).join(';');
+const ROPE_BOTTOM = PHASES.map((p) => `M2,76 L${X0},${(midY(X0, p) + HALF - 3).toFixed(1)}`).join(';');
+const WAVE_S = '1.5s';
+
+function Banner({ animate }: { animate: boolean }) {
+  const a = (values: string) =>
+    animate ? <animate attributeName="d" dur={WAVE_S} repeatCount="indefinite" values={values} calcMode="spline" keySplines="0.45 0 0.55 1;0.45 0 0.55 1;0.45 0 0.55 1;0.45 0 0.55 1" keyTimes="0;0.25;0.5;0.75;1" /> : null;
+  return (
+    <svg className="gb-banner" viewBox={`0 0 ${BW} ${BH}`} aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="gb-banner-fill" x1="0" y1="0" x2="1" y2="0.25">
+          <stop offset="0%" stopColor="#fff7c2" />
+          <stop offset="55%" stopColor="#fbef9a" />
+          <stop offset="100%" stopColor="#f5e27a" />
+        </linearGradient>
+        <path id="gb-banner-mid" d={midPath(0)}>
+          {a(MID_FRAMES)}
+        </path>
+      </defs>
+      <path d={ROPE_TOP.split(';')[0]} stroke="#8a6a3a" strokeWidth="1.6" fill="none">
+        {a(ROPE_TOP)}
+      </path>
+      <path d={ROPE_BOTTOM.split(';')[0]} stroke="#8a6a3a" strokeWidth="1.6" fill="none">
+        {a(ROPE_BOTTOM)}
+      </path>
+      <path d={bannerPath(0)} fill="url(#gb-banner-fill)" stroke="#d6b24a" strokeWidth="2" strokeLinejoin="round">
+        {a(BANNER_FRAMES)}
+      </path>
+      {[96, 212, 330].map((off) => (
+        <path key={off} d={foldPath(0, off)} fill="rgba(170,130,20,0.12)">
+          {a(PHASES.map((p) => foldPath(p, off)).join(';'))}
+        </path>
+      ))}
+      <text className="gb-banner__text" fontSize="30" fontWeight="800" fill="#b3261e">
+        <textPath href="#gb-banner-mid" startOffset="50%" textAnchor="middle">
+          С Днём учителя!
+        </textPath>
+      </text>
+    </svg>
+  );
+}
+
+/** Самолёт с пилотом (картинка) тянет флаг. Летит справа налево — так смотрит сам самолёт. */
+function Plane() {
+  // флаг «колышется» только если человек не просил поменьше анимаций
+  const [animate, setAnimate] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const apply = () => setAnimate(!mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+
+  return (
+    <div className="gb-flight" aria-hidden="true">
+      <div className="gb-plane">
+        <div className="gb-plane__body">
+          <img className="gb-plane__img" src="brand/plane.webp" alt="" width={284} height={202} decoding="async" loading="lazy" />
+          <Banner animate={animate} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Декоративный фон клумбы: горы, солнце, речка у подножия и самолёт с флагом «С Днём учителя!».
- * Статичный SVG (никакой стоимости на кадр, кроме самолёта и мягкой пульсации солнца — обе
- * анимации только transform/opacity, дёшево даже на слабом телефоне). Рисуется позади canvas
- * с цветами — видно в «небе» вокруг самой клумбы.
+ * Сам пейзаж — статичный SVG: он рисуется один раз и больше не перерисовывается. Всё, что движется
+ * (самолёт, свечение солнца), — отдельные слои, которые браузер двигает на видеокарте (transform/opacity).
+ * Рисуется позади canvas с цветами — видно в «небе» вокруг самой клумбы.
  */
 export function GardenBackdrop() {
   return (
+    <>
     <svg
       className="garden-backdrop"
       viewBox="0 0 1600 900"
@@ -50,7 +167,7 @@ export function GardenBackdrop() {
 
       <rect width="1600" height="900" fill="url(#gb-sky)" />
 
-      <circle className="gb-sun" cx="1200" cy="200" r="230" fill="url(#gb-sun-glow)" />
+      <circle cx="1200" cy="200" r="230" fill="url(#gb-sun-glow)" opacity="0.8" />
       <circle cx="1200" cy="200" r="72" fill="url(#gb-sun-core)" />
 
       {/* дальние горы */}
@@ -88,32 +205,8 @@ export function GardenBackdrop() {
         d="M-20,862 C 260,758 420,825 660,772 C 940,706 1160,798 1620,748"
       />
 
-      <g className="gb-plane">
-        <path d="M-96,0 L-150,0" stroke="#6b4a26" strokeWidth="2.5" opacity="0.65" strokeLinecap="round" />
-        <path d="M-150,-19 L-350,-19 L-332,0 L-350,19 L-150,19 Z" fill="var(--autumn-red)" />
-        <text
-          x="-250"
-          y="6.5"
-          textAnchor="middle"
-          fontFamily="var(--font-sans)"
-          fontWeight="700"
-          fontSize="18"
-          fill="#fff8e8"
-        >
-          С Днём учителя!
-        </text>
-
-        <path d="M-18,-7 L14,-40 L30,-40 L0,-5 Z" fill="#e6ddc4" stroke="#c9bd98" strokeWidth="1.5" />
-        <path d="M-18,7 L14,40 L30,40 L0,5 Z" fill="#e6ddc4" stroke="#c9bd98" strokeWidth="1.5" />
-        <path
-          d="M-96,-15 C -68,-19 -18,-19 26,-9 C 50,-4 62,0 62,0 C 62,0 50,4 26,9 C -18,19 -68,19 -96,15 C -104,9 -104,-9 -96,-15 Z"
-          fill="#fdfbf3"
-          stroke="#c9bd98"
-          strokeWidth="1.5"
-        />
-        <path d="M-80,-13 L-104,-30 L-92,-11 Z" fill="var(--autumn-red)" />
-        <circle cx="54" cy="0" r="4" fill="#7fb0d8" stroke="#c9bd98" strokeWidth="1" />
-      </g>
     </svg>
+    <Plane />
+    </>
   );
 }

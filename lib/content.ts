@@ -43,5 +43,6 @@ export const SCHOOL = {
   complex: 'Образовательный комплекс №\u00A010',
   complexGenitive: 'Образовательного комплекса №\u00A010',
   city: 'Ярославль',
-  emblem: '/brand/sunflower-ok10.webp',
+  // пути без «/» в начале: сайт работает и в корне домена, и в подпапке
+  emblem: 'brand/sunflower-ok10.webp',
 };

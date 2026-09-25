@@ -23,9 +23,21 @@ export function normalizeCode(input: string): string {
   return out;
 }
 
-/** XXXXX-XXXXX */
-export function formatCode(normalized: string): string {
-  return normalized.length > 5 ? `${normalized.slice(0, 5)}-${normalized.slice(5)}` : normalized;
+/** XXXXX-XXXXX. Можно передавать и уже отформатированный код — дефис не задвоится. */
+export function formatCode(code: string): string {
+  const n = normalizeCode(code);
+  return n.length > 5 ? `${n.slice(0, 5)}-${n.slice(5)}` : n;
+}
+
+/**
+ * Достаёт код из того, что ввёл или вставил человек: лишние пробелы, дефисы, кавычки,
+ * слово «Код:» перед ним — всё это не помеха. null — 10 знаков кода так и не нашлось.
+ */
+export function extractCode(input: string): string | null {
+  const n = normalizeCode(input);
+  if (isValidCodeShape(n)) return n;
+  const parts = n.replace(/[^A-Z0-9]/g, ' ').split(' ');
+  return parts.find((part) => isValidCodeShape(part)) ?? null;
 }
 
 export function isValidCodeShape(normalized: string): boolean {

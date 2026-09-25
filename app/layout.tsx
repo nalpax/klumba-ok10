@@ -17,7 +17,11 @@ const lora = Lora({
   display: 'swap',
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+
 export const metadata: Metadata = {
+  // адрес сайта нужен, чтобы превью ссылки в мессенджерах (картинка-открытка) открывалось по полному адресу
+  metadataBase: siteUrl ? new URL(siteUrl) : undefined,
   title: 'С Днём учителя! Клумба Образовательного комплекса № 10',
   description:
     'Каждый ученик сажает один цветок, а вместе мы создаём большую виртуальную клумбу в честь наших учителей.',

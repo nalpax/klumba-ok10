@@ -15,6 +15,8 @@ import {
 import type { FlowerKind, Planting, Slot } from './types';
 
 const TAU = Math.PI * 2;
+/** «id» для кольца вокруг подсолнуха в центре. */
+const EMBLEM_RING_ID = -1;
 
 export type Selection =
   | { type: 'planting'; planting: Planting; x: number; y: number }
@@ -93,6 +95,7 @@ export class GardenRenderer {
   private dirty = true;
   private tween: Tween | null = null;
 
+  private hoverKey = '';
   private pointers = new Map<number, { x: number; y: number }>();
   private drag: { x: number; y: number; cx: number; cy: number; moved: boolean } | null = null;
   private pinch: { dist: number; zoom: number; wx: number; wy: number } | null = null;
@@ -149,6 +152,16 @@ export class GardenRenderer {
     this.items.splice(lo, 0, p);
     if (animate && !this.opts.reducedMotion) this.growing.set(p.id, performance.now());
     this.invalidate();
+  }
+
+  /** Подсветить кольцом подсолнух в центре (цветок директора). */
+  highlightEmblem(ms = 5000) {
+    this.highlightPlanting(EMBLEM_RING_ID, ms);
+  }
+
+  /** Плавно показать подсолнух в центре. */
+  focusEmblem(zoomFactor = 1.8) {
+    this.animateTo(EMBLEM.x, EMBLEM.baseY - EMBLEM.height * 0.45, this.home * zoomFactor);
   }
 
   /** Подсветить цветок кольцом на несколько секунд. */
@@ -243,6 +256,7 @@ export class GardenRenderer {
 
   zoomBy(factor: number, sx = this.vw / 2, sy = this.vh / 2) {
     this.tween = null;
+    this.clearHover();
     const before = this.toWorld(sx, sy);
     const zoom = clamp(this.cam.zoom * factor, this.fit, this.maxZoom);
     this.cam.zoom = zoom;
@@ -252,7 +266,14 @@ export class GardenRenderer {
     this.invalidate();
   }
 
+  /** Подсказка привязана к экранным координатам — при движении камеры её нужно убрать. */
+  private clearHover() {
+    this.hoverKey = '';
+    this.opts.onSelect?.(null);
+  }
+
   private animateTo(cx: number, cy: number, zoom: number, dur = 750) {
+    this.clearHover();
     if (this.opts.reducedMotion) {
       this.cam = { cx, cy, zoom };
       this.clampCam();
@@ -551,9 +572,14 @@ export class GardenRenderer {
   private drawRing(k: number, ox: number, oy: number, now: number) {
     const h = this.highlight;
     if (!h) return;
-    const p = this.byId.get(h.id);
-    if (!p) return;
-    const c = this.headCenter(p);
+    let c: { x: number; y: number; r: number };
+    if (h.id === EMBLEM_RING_ID) {
+      c = { x: EMBLEM.x, y: EMBLEM.baseY - EMBLEM.height * 0.62, r: EMBLEM.height * 0.34 };
+    } else {
+      const p = this.byId.get(h.id);
+      if (!p) return;
+      c = this.headCenter(p);
+    }
     const ctx = this.ctx;
     const pulse = 0.5 + 0.5 * Math.sin(now / 260);
     const fade = clamp01((h.until - now) / 700);
@@ -619,6 +645,7 @@ export class GardenRenderer {
       const w = this.toWorld(mid.x, mid.y);
       this.pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y) || 1, zoom: this.cam.zoom, wx: w.x, wy: w.y };
       this.drag = null;
+      this.clearHover();
     }
     try {
       this.canvas.setPointerCapture(e.pointerId);
@@ -638,7 +665,13 @@ export class GardenRenderer {
             this.invalidate();
           }
         } else {
-          this.opts.onSelect?.(this.hitTest(pt.x, pt.y));
+          // сообщаем наружу только о смене цветка под курсором — иначе React перерисовывался бы на каждое движение мыши
+          const sel = this.hitTest(pt.x, pt.y);
+          const key = sel ? (sel.type === 'planting' ? `p${sel.planting.id}` : 'emblem') : '';
+          if (key !== this.hoverKey) {
+            this.hoverKey = key;
+            this.opts.onSelect?.(sel);
+          }
         }
       }
       return;
@@ -659,6 +692,7 @@ export class GardenRenderer {
       const dy = pt.y - this.drag.y;
       if (!this.drag.moved && Math.hypot(dx, dy) > 6) {
         this.drag.moved = true;
+        this.hoverKey = '';
         this.opts.onSelect?.(null);
       }
       if (this.drag.moved) {
@@ -694,6 +728,7 @@ export class GardenRenderer {
 
   private onPointerLeave = (e: PointerEvent) => {
     if (e.pointerType !== 'mouse') return;
+    this.hoverKey = '';
     this.opts.onSelect?.(null);
     if (this.pickHover !== null) {
       this.pickHover = null;

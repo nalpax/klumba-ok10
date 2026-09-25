@@ -1,17 +1,20 @@
 import { createDemoApi } from './demo';
+import { createLiveApi } from './live';
 import type { Api } from './types';
 
 let instance: Api | null = null;
 
 /**
- * Возвращает «бэкенд» сайта. Сейчас всегда демо; на этапе Realtime здесь появится
- * выбор по NEXT_PUBLIC_SUPABASE_URL: если задан — реальная база, иначе демо.
- * ?static в адресе отключает «посторонних» посадчиков в демо (удобно для проверки).
+ * Возвращает «бэкенд» сайта.
+ * Обычно — настоящий сервер (app/api). Демо в памяти браузера включается сборкой
+ * с NEXT_PUBLIC_DEMO=1 (так собирается статический предпросмотр) или адресом с ?demo.
+ * ?static в демо отключает «посторонних» посадчиков (удобно для проверки).
  */
 export function getApi(): Api {
   if (!instance) {
-    const simulate = typeof window !== 'undefined' && !new URLSearchParams(window.location.search).has('static');
-    instance = createDemoApi({ simulateOthers: simulate });
+    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+    const demo = process.env.NEXT_PUBLIC_DEMO === '1' || params.has('demo');
+    instance = demo ? createDemoApi({ simulateOthers: !params.has('static') }) : createLiveApi();
   }
   return instance;
 }

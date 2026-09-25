@@ -68,7 +68,7 @@ export function Hero({ status = 'open' }: { status?: EventStatus }) {
         <h1 className="sr-only">С Днём учителя!</h1>
         <figure className="hero-card">
           <img
-            src="/hero/autumn-card.jpg"
+            src="hero/autumn-card.jpg"
             alt=""
             width={736}
             height={491}

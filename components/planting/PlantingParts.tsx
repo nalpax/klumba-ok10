@@ -1,6 +1,8 @@
 'use client';
 
+import { FlowerPreview } from '@/components/garden/FlowerPreview';
 import { Modal } from '@/components/ui/Modal';
+import type { FlowerKind } from '@/lib/garden/types';
 
 interface PlaceBarProps {
   chosen: boolean;
@@ -78,6 +80,49 @@ export function ConfirmPlanting({ open, teacherName, subject, flowerPhrase, busy
           </button>
           <button type="button" className="btn btn--ghost btn--lg" onClick={onCancel} disabled={busy}>
             Изменить выбор
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+interface ThanksProps {
+  open: boolean;
+  teacherName: string;
+  flowerPhrase: string;
+  kind: FlowerKind | null;
+  color: string;
+  onClose: () => void;
+}
+
+/** Благодарность сразу после посадки. */
+export function ThanksModal({ open, teacherName, flowerPhrase, kind, color, onClose }: ThanksProps) {
+  return (
+    <Modal open={open} onClose={onClose} label="Спасибо!">
+      <div className="thanks">
+        {kind ? (
+          <div className="thanks__flower" aria-hidden="true">
+            <FlowerPreview kind={kind} color={color} height={150} />
+          </div>
+        ) : null}
+        <h2 className="dialog__title thanks__title">Спасибо! 🌷</h2>
+        <p className="thanks__text">
+          {flowerPhrase ? <strong>{flowerPhrase}</strong> : 'Ваш цветок'} уже растёт на нашей общей клумбе
+          {teacherName ? (
+            <>
+              {' '}
+              — для учителя <strong>{teacherName}</strong>
+            </>
+          ) : null}
+          .
+        </p>
+        <p className="thanks__sub">
+          Вы сказали «спасибо» так, что это видит вся школа. Учитель увидит ваш цветок, когда откроет свою открытку.
+        </p>
+        <div className="dialog__buttons thanks__buttons">
+          <button type="button" className="btn btn--lime btn--lg" onClick={onClose}>
+            Посмотреть на клумбе
           </button>
         </div>
       </div>

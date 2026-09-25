@@ -13,6 +13,8 @@ export interface GardenHandle {
   focusPlanting: (id: number) => void;
   /** Показать клумбу целиком. */
   fit: () => void;
+  /** Показать и подсветить подсолнух в центре (цветок директора). */
+  focusEmblem: () => void;
 }
 
 interface GardenProps {
@@ -106,6 +108,23 @@ export function Garden({
       initialised.current = true;
       return;
     }
+    // цветы могли и пропасть (администратор удалил учителя) — тогда перерисовываем набор целиком
+    const ids = new Set(plantings.map((p) => p.id));
+    let removed = false;
+    for (const id of seen.current) {
+      if (!ids.has(id)) {
+        removed = true;
+        break;
+      }
+    }
+    if (removed) {
+      const fresh = plantings.filter((p) => !seen.current.has(p.id));
+      const old = plantings.filter((p) => seen.current.has(p.id));
+      renderer.setPlantings(old);
+      for (const p of fresh) renderer.add(p, true);
+      seen.current = ids;
+      return;
+    }
     for (const p of plantings) {
       if (!seen.current.has(p.id)) {
         seen.current.add(p.id);
@@ -146,6 +165,10 @@ export function Garden({
         rendererRef.current?.focusOn(id, 2.6);
       },
       fit: () => rendererRef.current?.fitView(),
+      focusEmblem: () => {
+        rendererRef.current?.highlightEmblem();
+        rendererRef.current?.focusEmblem();
+      },
     }),
     [],
   );
@@ -157,7 +180,8 @@ export function Garden({
   const canZoomOut = !camera || camera.zoom > camera.fit * 1.005;
 
   // подсказка над цветком: ФИО учителя, предмет, цветок и его цвет
-  let tip: { title: string; sub: string } | null = null;
+  let tip: { title: string; sub: string; color?: string; director?: boolean } | null = null;
+  const director = teachers.find((t) => t.isDirector) ?? null;
   if (selection?.type === 'planting') {
     const p = selection.planting;
     const t = teacherById.get(p.teacherId);
@@ -165,10 +189,12 @@ export function Garden({
     const c = colorByHex.get(p.color.toUpperCase());
     const what = f ? (c ? describeFlower(c.name, f.kind, f.name) : f.name.toLowerCase()) : 'цветок';
     tip = t
-      ? { title: fullName(t), sub: `${t.subject} · ${what}` }
+      ? { title: fullName(t), sub: `${t.subject} · ${what}`, color: t.color, director: t.isDirector }
       : { title: 'Цветок', sub: what };
   } else if (selection?.type === 'emblem') {
-    tip = { title: 'Символ нашей школы', sub: 'Подсолнух ОК10' };
+    tip = director
+      ? { title: fullName(director), sub: 'Директор школы · главный подсолнух клумбы', color: director.color, director: true }
+      : { title: 'Символ нашей школы', sub: 'Подсолнух ОК10' };
   }
   const stageWidth = canvasRef.current?.clientWidth ?? 0;
   const tipLeft = selection ? Math.min(Math.max(selection.x, 110), Math.max(stageWidth - 110, 110)) : 0;
@@ -204,11 +230,15 @@ export function Garden({
 
         {selection && tip && !picking ? (
           <div
-            className={selection.y < 86 ? 'garden__tip garden__tip--below' : 'garden__tip'}
+            className={`garden__tip${selection.y < 96 ? ' garden__tip--below' : ''}${tip.director ? ' garden__tip--director' : ''}`}
             style={{ left: tipLeft, top: selection.y }}
             role="status"
           >
-            <strong>{tip.title}</strong>
+            <strong>
+              {tip.color ? <i className="garden__tip-dot" style={{ background: tip.color }} aria-hidden="true" /> : null}
+              {tip.director ? '🌻 ' : ''}
+              {tip.title}
+            </strong>
             <span>{tip.sub}</span>
           </div>
         ) : null}

@@ -18,6 +18,16 @@ export interface GardenData {
   addPlanting: (p: Planting) => void;
 }
 
+/**
+ * Свежий снимок с сервера главнее того, что уже было на странице: так пропадают удалённые цветы.
+ * Сохраняем только цветы новее снимка (пришли, пока снимок был в пути).
+ */
+function replaceWithSnapshot(snap: Planting[], prev: Planting[]): Planting[] {
+  const maxId = snap.reduce((m, p) => Math.max(m, p.id), 0);
+  const newer = prev.filter((p) => p.id > maxId);
+  return newer.length ? [...snap, ...newer] : snap;
+}
+
 function merge(base: Planting[], extra: Planting[]): Planting[] {
   const seen = new Set(base.map((p) => p.id));
   const add = extra.filter((p) => !seen.has(p.id));
@@ -40,8 +50,9 @@ export function useGarden(): GardenData {
   useEffect(() => {
     const api = getApi();
     let alive = true;
+    let retry: ReturnType<typeof setTimeout> | null = null;
 
-    const reload = () =>
+    const reload = (): Promise<void> =>
       api
         .load()
         .then((snap) => {
@@ -55,10 +66,11 @@ export function useGarden(): GardenData {
             flowers: snap.flowers,
             colors: snap.colors,
           });
-          setPlantings((prev) => merge(snap.plantings, prev));
+          setPlantings((prev) => replaceWithSnapshot(snap.plantings, prev));
         })
         .catch(() => {
-          /* без связи клумба остаётся пустой; повторная попытка — этап Realtime */
+          // нет связи — пробуем ещё раз через несколько секунд
+          if (alive) retry = setTimeout(reload, 5000);
         });
 
     // подписываемся сразу: цветы, пришедшие во время загрузки, не потеряются
@@ -74,6 +86,7 @@ export function useGarden(): GardenData {
 
     return () => {
       alive = false;
+      if (retry) clearTimeout(retry);
       unsubscribe();
       unsubscribeMeta();
     };
@@ -91,7 +104,11 @@ export function useEventStatus(initial: EventStatus = 'open'): EventStatus {
   useEffect(() => {
     const api = getApi();
     let alive = true;
-    const apply = () => api.load().then((snap) => alive && setStatus(snap.status));
+    const apply = () =>
+      api
+        .load()
+        .then((snap) => alive && setStatus(snap.status))
+        .catch(() => {});
     apply();
     const unsub = api.subscribeMeta(apply);
     return () => {

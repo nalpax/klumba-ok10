@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { PostcardView } from '@/components/postcard/PostcardView';
 import { Modal } from '@/components/ui/Modal';
 import { ERROR_TEXT, getApi } from '@/lib/api';
-import { CODE_ALPHABET, CODE_LENGTH, formatCode, isValidCodeShape, normalizeCode } from '@/lib/codes';
+import { CODE_ALPHABET, CODE_LENGTH, extractCode, formatCode, normalizeCode } from '@/lib/codes';
+import { plural } from '@/lib/plural';
 import { useAccount, type StudentSession, type TeacherSession } from './AccountProvider';
 
 // Пока введённое ещё может стать 10-значным кодом — форматируем как код (заглавные буквы,
@@ -22,9 +23,9 @@ function scrollTo(id: string) {
   });
 }
 
-function LoginForm() {
-  const { login, closeDialog, openAdminPanel } = useAccount();
-  const [value, setValue] = useState('');
+function LoginForm({ director = false }: { director?: boolean }) {
+  const { login, closeDialog, openAdminPanel, linkCode } = useAccount();
+  const [value, setValue] = useState(linkCode ? formatCode(linkCode) : '');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -38,8 +39,13 @@ function LoginForm() {
     e.preventDefault();
     const trimmed = value.trim();
     if (!trimmed) return;
-    if (looksLikeCode(trimmed) && !isValidCodeShape(normalizeCode(trimmed))) {
-      setError(`Код состоит из ${CODE_LENGTH} знаков. Проверьте, что ввели всё до конца.`);
+    if (looksLikeCode(trimmed) && !extractCode(trimmed)) {
+      const left = CODE_LENGTH - normalizeCode(trimmed).length;
+      setError(
+        left > 0
+          ? `В коде ${CODE_LENGTH} знаков, а введено ${CODE_LENGTH - left}. Не хватает ещё ${left} ${plural(left, ['знака', 'знаков', 'знаков'])}.`
+          : `В коде ${CODE_LENGTH} знаков. Проверьте, что нет лишнего.`,
+      );
       return;
     }
     setBusy(true);
@@ -59,8 +65,10 @@ function LoginForm() {
 
   return (
     <form className="login" onSubmit={submit} noValidate>
-      <h2 className="dialog__title">Вход по коду</h2>
-      <p className="dialog__lead">Введите код, который вам выдали в школе.</p>
+      <h2 className="dialog__title">{director ? 'Вход для директора' : 'Вход по коду'}</h2>
+      <p className="dialog__lead">
+        {director ? 'Любовь Валентиновна, введите ваш личный код — для вас приготовлено особое поздравление.' : 'Введите код, который вам выдали в школе.'}
+      </p>
 
       <label className="field">
         <span className="field__label">Ваш код</span>
@@ -69,8 +77,11 @@ function LoginForm() {
           className="field__input field__input--code"
           value={value}
           onChange={(e) => {
+            // Ничего не обрезаем: вставленный код с пробелами или лишними дефисами тоже должен войти.
+            // Пока ввод похож на код — показываем его красиво (заглавные буквы и дефис посередине).
             const raw = e.target.value;
-            setValue(looksLikeCode(raw) ? formatCode(normalizeCode(raw).slice(0, CODE_LENGTH)) : raw);
+            const found = extractCode(raw);
+            setValue(found ? formatCode(found) : looksLikeCode(raw) ? formatCode(raw) : raw);
             setError(null);
           }}
           placeholder="XXXXX-XXXXX"
@@ -79,7 +90,7 @@ function LoginForm() {
           autoCorrect="off"
           spellCheck={false}
           inputMode="text"
-          maxLength={CODE_LENGTH + 1}
+          maxLength={64}
           aria-invalid={error ? true : undefined}
           aria-describedby="login-hint login-error"
         />
@@ -105,9 +116,9 @@ function LoginForm() {
                 <span>Ученик</span> {c}
               </button>
             ))}
-            {demo.teachers.slice(0, 2).map((t) => (
+            {demo.teachers.slice(0, 2).map((t, i) => (
               <button type="button" key={t.code} className="chip" onClick={() => { setValue(t.code); setError(null); }}>
-                <span>Учитель</span> {t.code}
+                <span>{i === 0 ? 'Директор' : 'Учитель'}</span> {t.code}
               </button>
             ))}
             {demo.admin ? (
@@ -170,9 +181,11 @@ function StudentCabinet({ session }: { session: StudentSession }) {
 
 function TeacherCabinet({ session }: { session: TeacherSession }) {
   const { openCard, closeDialog, logout } = useAccount();
+  const director = !!session.teacher.isDirector;
   return (
     <div className="cabinet cabinet--card">
       <PostcardView
+        director={director}
         teacher={session.teacher}
         wish={session.wish}
         planted={session.planted}
@@ -181,7 +194,9 @@ function TeacherCabinet({ session }: { session: TeacherSession }) {
         onShowFlowers={() => {
           closeDialog();
           scrollTo('garden');
-          window.dispatchEvent(new CustomEvent('garden:focus-teacher', { detail: { teacherId: session.teacher.id } }));
+          window.dispatchEvent(
+            new CustomEvent('garden:focus-teacher', { detail: { teacherId: session.teacher.id, emblem: director } }),
+          );
         }}
       />
       <button type="button" className="link-button" onClick={logout}>
@@ -210,7 +225,7 @@ function AdminCabinet() {
 }
 
 export function AccountDialog() {
-  const { session, dialogOpen, closeDialog } = useAccount();
+  const { session, dialogOpen, dialogMode, closeDialog } = useAccount();
   const wide = session?.role === 'teacher';
 
   return (
@@ -226,7 +241,7 @@ export function AccountDialog() {
         </svg>
       </button>
       {!session ? (
-        <LoginForm />
+        <LoginForm director={dialogMode === 'director'} />
       ) : session.role === 'teacher' ? (
         <TeacherCabinet session={session} />
       ) : session.role === 'admin' ? (

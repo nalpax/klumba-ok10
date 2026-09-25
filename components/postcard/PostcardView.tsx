@@ -13,6 +13,8 @@ type Outcome = { ok: true } | { ok: false; error: ApiError };
 
 interface PostcardViewProps {
   teacher: TeacherInfo;
+  /** Открытка директору: золотая, с подсолнухом в центре клумбы. */
+  director?: boolean;
   /** null — открытка ещё не открыта, настоящего текста на странице нет */
   wish: string | null;
   planted: number;
@@ -27,7 +29,7 @@ const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
  * Открытка учителю. Пока она закрыта, пожелание размыто, а под размытием — текст-заглушка.
  * Кнопка «Открыть открытку» запрашивает настоящий текст; одновременно открытка выезжает из конверта.
  */
-export function PostcardView({ teacher, wish, planted, onOpen, onShowFlowers, onClose }: PostcardViewProps) {
+export function PostcardView({ teacher, director = false, wish, planted, onOpen, onShowFlowers, onClose }: PostcardViewProps) {
   const [phase, setPhase] = useState<Phase>(wish !== null ? 'open' : 'closed');
   const [burst, setBurst] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,9 +68,20 @@ export function PostcardView({ teacher, wish, planted, onOpen, onShowFlowers, on
     .filter(Boolean);
 
   return (
-    <div className={`postcard postcard--${phase}`}>
-      <h2 className="postcard__heading">{phase === 'open' ? 'Ваша открытка' : 'Для вас пришла открытка'}</h2>
-      <p className="postcard__to">{fullName(teacher)}</p>
+    <div className={`postcard postcard--${phase}${director ? ' postcard--director' : ''}`}>
+      <h2 className="postcard__heading">
+        {director
+          ? phase === 'open'
+            ? 'Особое поздравление'
+            : 'Для вас — особое поздравление'
+          : phase === 'open'
+            ? 'Ваша открытка'
+            : 'Для вас пришла открытка'}
+      </h2>
+      <p className="postcard__to">
+        {fullName(teacher)}
+        {director ? <span className="postcard__role">директор {SCHOOL.complexGenitive}</span> : null}
+      </p>
 
       <div className="pc-stage">
       <div className="pc-scene">
@@ -80,8 +93,10 @@ export function PostcardView({ teacher, wish, planted, onOpen, onShowFlowers, on
               <p key={i}>{p}</p>
             ))}
           </div>
-          <p className="pc-card__sign">С Днём учителя! 🌷</p>
-          <p className="pc-card__from">Ученики {SCHOOL.complexGenitive}</p>
+          <p className="pc-card__sign">С Днём учителя! {director ? '🌻' : '🌷'}</p>
+          <p className="pc-card__from">
+            {director ? `Ученики и учителя ${SCHOOL.complexGenitive}` : `Ученики ${SCHOOL.complexGenitive}`}
+          </p>
         </article>
         <div className="pc-front" aria-hidden="true" />
         <div className="pc-seal" aria-hidden="true">
@@ -107,11 +122,12 @@ export function PostcardView({ teacher, wish, planted, onOpen, onShowFlowers, on
       {phase === 'open' ? (
         <div className="postcard__after">
           <p role="status">
-            Для вас уже посажено <strong>{planted}</strong> {plural(planted, ['цветок', 'цветка', 'цветов'])} 🌷
+            {director ? 'Подсолнух в самом центре клумбы — ваш. А ещё для вас' : 'Для вас уже'} посажено{' '}
+            <strong>{planted}</strong> {plural(planted, ['цветок', 'цветка', 'цветов'])} {director ? '🌻' : '🌷'}
           </p>
           <div className="postcard__buttons">
             <button type="button" className="btn btn--lime" onClick={onShowFlowers}>
-              Показать мои цветы
+              {director ? 'Показать мой подсолнух и цветы' : 'Показать мои цветы'}
             </button>
             <button type="button" className="btn btn--ghost" onClick={onClose}>
               Закрыть
@@ -125,7 +141,9 @@ export function PostcardView({ teacher, wish, planted, onOpen, onShowFlowers, on
               {error}
             </p>
           ) : (
-            <p className="postcard__hint">Пожелание для вас спрятано в конверте.</p>
+            <p className="postcard__hint">
+              {director ? 'Поздравление от всей школы спрятано в золотом конверте.' : 'Пожелание для вас спрятано в конверте.'}
+            </p>
           )}
           <button type="button" className="btn btn--lime btn--lg" onClick={open} disabled={phase === 'lifting'}>
             {phase === 'lifting' ? 'Открываем…' : 'Открыть открытку'}

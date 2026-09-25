@@ -4,7 +4,10 @@ export type FlowerKind =
   | 'poppy'
   | 'daisy'
   | 'cornflower'
-  | 'sunflower';
+  | 'sunflower'
+  | 'aster'
+  | 'chrysanthemum'
+  | 'bellflower';
 
 export const FLOWER_KINDS: FlowerKind[] = [
   'tulip',
@@ -13,6 +16,9 @@ export const FLOWER_KINDS: FlowerKind[] = [
   'daisy',
   'cornflower',
   'sunflower',
+  'aster',
+  'chrysanthemum',
+  'bellflower',
 ];
 
 /** Тип цветка из таблицы flowers. */
@@ -40,8 +46,10 @@ export interface Teacher {
   photoUrl?: string | null;
   /** Акцентный цвет учителя: точка в списках. На цвет цветка не влияет — его выбирает ученик. */
   color: string;
-  /** Какие цветы можно посадить для этого учителя (teacher_flowers). */
+  /** Какие цветы можно посадить для этого учителя. */
   flowerIds: number[];
+  /** Директор школы: ей принадлежит подсолнух в центре клумбы, у неё своя открытка. */
+  isDirector?: boolean;
 }
 
 /** Один посаженный цветок. x, y — нормализованные (0..1) координаты основания стебля. */

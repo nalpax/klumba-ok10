@@ -5,7 +5,7 @@ import { useAccount } from '@/components/account/AccountProvider';
 import { Garden, type GardenHandle } from '@/components/garden/Garden';
 import { useGarden } from '@/components/garden/useGarden';
 import { PlantingPanel, type Choice } from '@/components/planting/PlantingPanel';
-import { ConfirmPlanting, PlaceBar } from '@/components/planting/PlantingParts';
+import { ConfirmPlanting, PlaceBar, ThanksModal } from '@/components/planting/PlantingParts';
 import { ERROR_TEXT, getApi } from '@/lib/api';
 import { STATUS_TEXT, type ClosingContent } from '@/lib/content';
 import { describeFlower } from '@/lib/garden/flowers';
@@ -81,6 +81,7 @@ export function GardenSection() {
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [highlightId, setHighlightId] = useState<number | null>(null);
   const [focusTeacherId, setFocusTeacherId] = useState<number | null>(null);
+  const [thanks, setThanks] = useState<{ planting: Planting; teacherName: string; phrase: string } | null>(null);
 
   // палитра может отличаться в базе: если выбранного цвета в ней нет, берём первый
   useEffect(() => {
@@ -121,9 +122,9 @@ export function GardenSection() {
       setTimeout(() => gardenRef.current?.focusPlanting(id), 500);
     };
     const onTeacher = (e: Event) => {
-      const id = (e as CustomEvent<{ teacherId: number }>).detail?.teacherId;
-      setFocusTeacherId(id ?? null);
-      setTimeout(() => gardenRef.current?.fit(), 300);
+      const detail = (e as CustomEvent<{ teacherId: number; emblem?: boolean }>).detail;
+      setFocusTeacherId(detail?.teacherId ?? null);
+      setTimeout(() => (detail?.emblem ? gardenRef.current?.focusEmblem() : gardenRef.current?.fit()), 300);
     };
     window.addEventListener('garden:find', onFind);
     window.addEventListener('garden:focus-teacher', onTeacher);
@@ -187,13 +188,26 @@ export function GardenSection() {
 
     setConfirmOpen(false);
     g.addPlanting(res.planting);
-    applyPlanted(res.planting);
     setHighlightId(res.planting.id);
     setPhase('choose');
     setPool(null);
     setSlot(null);
     setNotice(null);
     setTimeout(() => gardenRef.current?.focusPlanting(res.planting.id), 150);
+    // благодарим через мгновение, когда цветок уже начал расти
+    setTimeout(() => {
+      setThanks({ planting: res.planting, teacherName: teacher ? fullName(teacher) : '', phrase: flowerPhrase });
+    }, 900);
+  };
+
+  const closeThanks = () => {
+    const p = thanks?.planting;
+    setThanks(null);
+    if (!p) return;
+    // сессия ученика становится «цветок посажен» только сейчас: иначе панель выбора пропала бы раньше благодарности
+    applyPlanted(p);
+    scrollToStage();
+    setTimeout(() => gardenRef.current?.focusPlanting(p.id), 300);
   };
 
   const toggleFocus = (id: number) => setFocusTeacherId((cur) => (cur === id ? null : id));
@@ -208,7 +222,7 @@ export function GardenSection() {
         <p>
           <strong>Хотите посадить свой цветок?</strong> Войдите по коду, который вам выдали в школе.
         </p>
-        <button type="button" className="btn btn--lime" onClick={openDialog}>
+        <button type="button" className="btn btn--lime" onClick={() => openDialog()}>
           Вход
         </button>
       </Bar>
@@ -216,18 +230,26 @@ export function GardenSection() {
   } else if (session.role === 'teacher') {
     const mine = counts.get(session.teacher.id) ?? 0;
     const active = focusTeacherId === session.teacher.id;
+    const isDirector = !!session.teacher.isDirector;
     panel = (
       <Bar id="plant">
         <p>
-          <strong>{fullName(session.teacher)}</strong>, для вас посажено {mine} {plural(mine, ['цветок', 'цветка', 'цветов'])} 🌷
+          <strong>{fullName(session.teacher)}</strong>,{' '}
+          {isDirector ? 'подсолнух в центре клумбы — ваш, а ещё для вас посажено' : 'для вас посажено'} {mine}{' '}
+          {plural(mine, ['цветок', 'цветка', 'цветов'])} {isDirector ? '🌻' : '🌷'}
         </p>
         <div className="bar__buttons">
-          <button type="button" className="btn btn--lime btn--sm" onClick={openDialog}>
+          <button type="button" className="btn btn--lime btn--sm" onClick={() => openDialog()}>
             Открытка
           </button>
           <button type="button" className="btn btn--ghost btn--sm" onClick={() => toggleFocus(session.teacher.id)}>
             {active ? 'Показать все цветы' : 'Показать мои цветы'}
           </button>
+          {isDirector ? (
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => gardenRef.current?.focusEmblem()}>
+              Мой подсолнух
+            </button>
+          ) : null}
         </div>
       </Bar>
     );
@@ -348,6 +370,15 @@ export function GardenSection() {
           </div>
         ) : null}
       </div>
+
+      <ThanksModal
+        open={thanks !== null}
+        teacherName={thanks?.teacherName ?? ''}
+        flowerPhrase={thanks?.phrase ?? ''}
+        kind={thanks ? (g.flowers.find((f) => f.id === thanks.planting.flowerId)?.kind ?? null) : null}
+        color={thanks?.planting.color ?? '#E03131'}
+        onClose={closeThanks}
+      />
 
       <ConfirmPlanting
         open={confirmOpen}

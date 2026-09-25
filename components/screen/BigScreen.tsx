@@ -10,7 +10,7 @@ import { describeFlower } from '@/lib/garden/flowers';
 import type { Planting } from '@/lib/garden/types';
 import { fullName } from '@/lib/names';
 import { totalCaption } from '@/lib/total';
-import { defaultSiteUrl, qrSvg } from '@/lib/qr';
+import { defaultSiteUrl } from '@/lib/qr';
 
 interface Toast {
   key: number;
@@ -25,14 +25,13 @@ const INFO_EVERY_MS = 40_000;
 
 /**
  * Режим для большого экрана (проектор в актовом зале, телевизор в холле): адрес сайта с ?screen.
- * Клумба во весь экран, крупный счётчик, QR-код «посади свой цветок», объявления о новых цветах.
+ * Клумба во весь экран, крупный счётчик, объявления о новых цветах.
  * Новый цветок камера показывает крупно и через несколько секунд возвращается ко всей клумбе.
  */
 export function BigScreen() {
   const g = useGarden();
   const gardenRef = useRef<GardenHandle>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [qr, setQr] = useState<string>('');
   const [siteUrl, setSiteUrl] = useState('');
   const [chrome, setChrome] = useState(true);
   const seenMax = useRef<number | null>(null);
@@ -51,13 +50,9 @@ export function BigScreen() {
     setTimeout(() => setToasts((list) => list.filter((x) => x.key !== key)), 11_000);
   };
 
-  // QR-код сайта
+  // адрес сайта — для ссылки «Выйти из режима экрана»
   useEffect(() => {
-    const url = defaultSiteUrl();
-    setSiteUrl(url);
-    qrSvg(url, 0)
-      .then(setQr)
-      .catch(() => setQr(''));
+    setSiteUrl(defaultSiteUrl());
   }, []);
 
   // новые цветы: объявление + камера крупно показывает цветок
@@ -93,7 +88,7 @@ export function BigScreen() {
     });
   };
 
-  // когда долго тихо — напоминаем про подсолнух директора и про QR
+  // когда долго тихо — показываем подсолнух директора или благодарность учителям
   useEffect(() => {
     let n = 0;
     const id = setInterval(() => {
@@ -105,7 +100,7 @@ export function BigScreen() {
         backTimer.current = setTimeout(() => gardenRef.current?.home(), FOCUS_MS);
         push({ kind: 'info', title: '🌻 Подсолнух в центре', text: `Главный цветок клумбы — директору школы, ${fullName(director)}` });
       } else {
-        push({ kind: 'info', title: 'Посади свой цветок', text: 'Наведите камеру телефона на QR-код справа и введите свой код' });
+        push({ kind: 'info', title: 'Спасибо, учителя! 🍂', text: 'Каждый цветок на этой клумбе — «спасибо» от одного ученика' });
       }
     }, INFO_EVERY_MS);
     return () => clearInterval(id);
@@ -134,7 +129,6 @@ export function BigScreen() {
   };
 
   const count = g.plantings.length;
-  const host = siteUrl.replace(/^https?:\/\//, '');
 
   return (
     <div className="screen" data-chrome={chrome ? 'on' : 'off'}>
@@ -180,15 +174,6 @@ export function BigScreen() {
           ))}
         </div>
 
-        {qr ? (
-          <aside className="screen__qr">
-            <div className="screen__qr-code" dangerouslySetInnerHTML={{ __html: qr }} />
-            <p>
-              <strong>Посади свой цветок!</strong>
-              <span>{host}</span>
-            </p>
-          </aside>
-        ) : null}
       </main>
 
       <div className="screen__tools">

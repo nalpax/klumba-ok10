@@ -144,7 +144,7 @@ export function paintLawn(seed = 11): HTMLCanvasElement {
   ctx.lineWidth = 1.6;
   ctx.stroke();
 
-  // ближняя половина бордюра и тыквы у края клумбы (табличка «Спасибо, учителя!» — отдельным слоем, см. GardenBackdrop)
+  // ближняя половина бордюра и тыквы у края клумбы (табличка «Спасибо учителям!» — отдельным слоем, см. GardenBackdrop)
   paintStones(ctx, rnd, 'front');
   paintPumpkin(ctx, 150, 905, 1.05, rnd);
   paintPumpkin(ctx, 225, 950, 0.7, rnd);

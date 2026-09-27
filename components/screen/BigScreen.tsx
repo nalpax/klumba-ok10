@@ -100,7 +100,7 @@ export function BigScreen() {
         backTimer.current = setTimeout(() => gardenRef.current?.home(), FOCUS_MS);
         push({ kind: 'info', title: '🌻 Подсолнух в центре', text: `Главный цветок клумбы — директору школы, ${fullName(director)}` });
       } else {
-        push({ kind: 'info', title: 'Спасибо, учителя! 🍂', text: 'Каждый цветок на этой клумбе — «спасибо» от одного ученика' });
+        push({ kind: 'info', title: 'Спасибо учителям! 🍂', text: 'Каждый цветок на этой клумбе — «спасибо» от одного ученика' });
       }
     }, INFO_EVERY_MS);
     return () => clearInterval(id);

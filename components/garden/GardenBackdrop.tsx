@@ -90,6 +90,35 @@ function Banner({ animate }: { animate: boolean }) {
   );
 }
 
+/* ------------------------------ табличка перед клумбой ------------------------------ */
+
+/**
+ * Деревянная табличка «Спасибо, учителя!» по центру перед клумбой — на ближнем бордюре,
+ * поэтому видна при любом экране (на телефоне края клумбы обрезаются, а центр — нет).
+ */
+function ThanksSign() {
+  return (
+    <svg className="world-sign" viewBox="0 0 340 86" focusable="false">
+      <defs>
+        <linearGradient id="ws-wood" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#d49a58" />
+          <stop offset="100%" stopColor="#9a6230" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="170" cy="80" rx="150" ry="7" fill="rgba(0,0,0,0.3)" />
+      <rect x="6" y="4" width="328" height="70" rx="14" fill="url(#ws-wood)" stroke="#6b4520" strokeWidth="3" />
+      <path d="M18,28 C110,24 230,32 322,27 M18,50 C110,54 230,46 322,51" stroke="rgba(255,230,190,0.28)" strokeWidth="1.6" fill="none" />
+      {[[20, 17], [320, 17], [20, 61], [320, 61]].map(([x, y]) => (
+        <circle key={`${x}-${y}`} cx={x} cy={y} r="3.6" fill="#4a2a0c" />
+      ))}
+      <text x="170" y="50" textAnchor="middle" className="world-sign__text">
+        Спасибо, учителя!
+      </text>
+      <path d="M30,74 L26,84 M310,74 L314,84" stroke="#6b4520" strokeWidth="5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 /* ------------------------------ бабочки над клумбой ------------------------------ */
 
 const BUTTERFLIES: Array<[string, string]> = [
@@ -135,6 +164,7 @@ export function SkyPlane({ ref }: { ref?: Ref<HTMLDivElement> }) {
 
   return (
     <div className="gb-flight" aria-hidden="true" ref={ref}>
+      <ThanksSign />
       {BUTTERFLIES.map((b, i) => (
         <div key={i} className={`bfly bfly--${i + 1}`}>
           <Butterfly colors={b} />

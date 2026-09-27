@@ -144,12 +144,11 @@ export function paintLawn(seed = 11): HTMLCanvasElement {
   ctx.lineWidth = 1.6;
   ctx.stroke();
 
-  // ближняя половина бордюра, тыквы и табличка у края клумбы
+  // ближняя половина бордюра и тыквы у края клумбы (табличка «Спасибо, учителя!» — отдельным слоем, см. GardenBackdrop)
   paintStones(ctx, rnd, 'front');
   paintPumpkin(ctx, 150, 905, 1.05, rnd);
   paintPumpkin(ctx, 225, 950, 0.7, rnd);
   paintPumpkin(ctx, 1830, 930, 0.9, rnd);
-  paintSign(ctx, 1690, 1010);
 
   return c;
 }
@@ -270,50 +269,5 @@ function paintPumpkin(ctx: Ctx, x: number, y: number, s: number, rnd: () => numb
   ctx.beginPath();
   ctx.ellipse(-14 + rnd() * 4, -34, 14, 6, -0.5, 0, TAU);
   ctx.fill();
-  ctx.restore();
-}
-
-/** Деревянная табличка «Спасибо, учителя!». */
-function paintSign(ctx: Ctx, x: number, y: number) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath();
-  ctx.ellipse(6, 4, 40, 9, 0, 0, TAU);
-  ctx.fill();
-  // столбик
-  ctx.fillStyle = '#6b4520';
-  ctx.fillRect(-7, -120, 14, 124);
-  // доска
-  ctx.rotate(-0.04);
-  const g = ctx.createLinearGradient(0, -170, 0, -100);
-  g.addColorStop(0, '#c98a4b');
-  g.addColorStop(1, '#9a6230');
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.roundRect(-150, -172, 300, 70, 12);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(70,40,10,0.55)';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-  ctx.strokeStyle = 'rgba(255,230,190,0.25)';
-  ctx.lineWidth = 1.5;
-  for (const yy of [-150, -130, -115]) {
-    ctx.beginPath();
-    ctx.moveTo(-140, yy);
-    ctx.bezierCurveTo(-50, yy - 3, 50, yy + 3, 140, yy);
-    ctx.stroke();
-  }
-  ctx.fillStyle = '#4a2a0c';
-  for (const [nx, ny] of [[-136, -160], [136, -160], [-136, -114], [136, -114]]) {
-    ctx.beginPath();
-    ctx.arc(nx, ny, 3.5, 0, TAU);
-    ctx.fill();
-  }
-  ctx.fillStyle = '#fff4dc';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = 'italic 700 30px Georgia, "Times New Roman", serif';
-  ctx.fillText('Спасибо, учителя!', 0, -136);
   ctx.restore();
 }

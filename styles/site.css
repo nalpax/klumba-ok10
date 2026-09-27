@@ -1147,3 +1147,11 @@ html:has(.screen) { background: #ffe9b8; }
 
 .screen__count { max-width: min(560px, 40vw); }
 .screen__count span { text-align: right; line-height: 1.3; text-wrap: balance; }
+
+/* табличка «Спасибо, учителя!» — в координатах мира, по центру на ближнем бордюре */
+.world-sign {
+  position: absolute; left: 0; top: 0; width: 440px; height: 111px; max-width: none; overflow: visible;
+  transform: translate(780px, 996px) rotate(-1.5deg);
+  filter: drop-shadow(0 8px 8px rgba(40, 20, 5, 0.35));
+}
+.world-sign__text { font-family: var(--font-serif); font-style: italic; font-weight: 700; font-size: 32px; fill: #fff4dc; }

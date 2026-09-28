@@ -5,8 +5,8 @@ import type { Api, ApiError, GardenSnapshot } from './types';
  * (его скачивают в админке кнопкой «Скачать архив клумбы» после праздника). В архиве нет ни кодов,
  * ни личных пожеланий — только учителя, цветы и тексты. Войти, посадить цветок или открыть админку нельзя.
  */
-export function createArchiveApi(url = 'archive.json'): Api {
-  let cached: Promise<GardenSnapshot> | null = null;
+export function createArchiveApi(url = 'archive.json', preloaded?: GardenSnapshot): Api {
+  let cached: Promise<GardenSnapshot> | null = preloaded ? Promise.resolve({ ...preloaded, status: 'closed' }) : null;
   const closed = async () => ({ ok: false as const, error: 'closed' as ApiError });
   const forbidden = () => Promise.reject(new Error('forbidden'));
 

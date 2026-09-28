@@ -1,3 +1,4 @@
+import '@/lib/mode';
 import { createArchiveApi } from './archive';
 import { createDemoApi } from './demo';
 import { createLiveApi } from './live';
@@ -17,7 +18,8 @@ export function getApi(): Api {
   if (!instance) {
     const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
     const devDemo = process.env.NODE_ENV !== 'production' && params.has('demo');
-    if (process.env.NEXT_PUBLIC_ARCHIVE === '1') instance = createArchiveApi();
+    const preloaded = typeof window !== 'undefined' ? window.__KLUMBA_ARCHIVE__ : undefined;
+    if (process.env.NEXT_PUBLIC_ARCHIVE === '1' || preloaded) instance = createArchiveApi('archive.json', preloaded);
     else if (process.env.NEXT_PUBLIC_DEMO === '1' || devDemo) instance = createDemoApi({ simulateOthers: !params.has('static') });
     else instance = createLiveApi();
   }

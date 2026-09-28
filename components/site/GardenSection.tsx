@@ -13,7 +13,7 @@ import { FLOWER_COLORS } from '@/lib/garden/palette';
 import type { Planting, Slot, Teacher } from '@/lib/garden/types';
 import { fullName, shortName } from '@/lib/names';
 import { plural } from '@/lib/plural';
-import { IS_ARCHIVE } from '@/lib/mode';
+import { isArchive } from '@/lib/mode';
 import { totalCaption } from '@/lib/total';
 
 function Bar({ id, children }: { id?: string; children: ReactNode }) {
@@ -216,7 +216,7 @@ export function GardenSection() {
 
   /* -------- что показывать над клумбой -------- */
   let panel: ReactNode;
-  if ((g.status === 'closed' || IS_ARCHIVE) && !(session?.role === 'teacher') && !(session?.role === 'student' && session.status === 'used')) {
+  if ((g.status === 'closed' || isArchive()) && !(session?.role === 'teacher') && !(session?.role === 'student' && session.status === 'used')) {
     panel = <ClosingPanel closing={g.closing} plantings={g.plantings} teachers={g.teachers} />;
   } else if (!session) {
     panel = (

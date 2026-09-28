@@ -819,7 +819,8 @@ function ArchiveBlock() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `klumba-archive-${new Date().toISOString().slice(0, 10)}.json`;
+      // имя именно archive.json — так его достаточно загрузить рядом с сайтом на GitHub Pages
+      a.download = 'archive.json';
       a.click();
       URL.revokeObjectURL(url);
     } catch {

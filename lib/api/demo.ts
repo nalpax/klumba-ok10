@@ -19,7 +19,7 @@ const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /** Демо-«сервер» в памяти браузера: те же правила (lib/core/engine.ts), что и на настоящем сервере. */
 export function createDemoApi(options: { simulateOthers?: boolean } = {}): Api {
-  const { simulateOthers = true } = options;
+  let simulate = options.simulateOthers ?? true;
   const state = demoState();
   const listeners = new Set<(p: Planting) => void>();
   const metaListeners = new Set<() => void>();
@@ -74,7 +74,7 @@ export function createDemoApi(options: { simulateOthers?: boolean } = {}): Api {
 
     subscribe(onPlanting) {
       listeners.add(onPlanting);
-      if (simulateOthers && !timer) timer = setInterval(addRandomPlanting, 11_000);
+      if (simulate && !timer) timer = setInterval(addRandomPlanting, 11_000);
       return () => {
         listeners.delete(onPlanting);
         if (listeners.size === 0 && timer) {
@@ -149,6 +149,18 @@ export function createDemoApi(options: { simulateOthers?: boolean } = {}): Api {
       await wait(250);
       const res = engine.deleteTeacher(state, id);
       if (res.ok) publishMeta();
+      return res;
+    },
+    async adminClearPlantings() {
+      await wait(250);
+      // после очистки «посторонние» посадчики демо больше не сажают цветы — только живые посадки
+      simulate = false;
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+      const res = engine.clearPlantings(state);
+      publishMeta();
       return res;
     },
     async adminGenerateStudentCodes(count, label) {

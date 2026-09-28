@@ -41,6 +41,7 @@ export function createArchiveApi(url = 'archive.json'): Api {
     adminListTeachers: forbidden,
     adminSaveTeacher: closed,
     adminDeleteTeacher: closed,
+    adminClearPlantings: closed,
     adminGenerateStudentCodes: closed,
     adminGenerateTeacherCode: closed,
     adminExportCodes: forbidden,

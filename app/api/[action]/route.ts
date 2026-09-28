@@ -136,6 +136,11 @@ export async function POST(req: NextRequest, ctx: Ctx) {
       if (res.ok) markDirty();
       return json(res);
     }
+    case 'admin-clear-plantings': {
+      const res = engine.clearPlantings(state);
+      markDirty();
+      return json(res);
+    }
     case 'admin-student-codes': {
       const res = engine.generateStudentCodes(state, Number(body.count), String(body.label ?? ''));
       if (res.ok) markDirty();

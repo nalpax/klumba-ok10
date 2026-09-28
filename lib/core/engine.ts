@@ -283,6 +283,18 @@ export function deleteTeacher(state: GardenState, id: number): { ok: true; remov
   return { ok: true, removed: removedIds.size };
 }
 
+/**
+ * Удаляет все цветы с клумбы (например, перед запуском — после проверки сайта).
+ * Все коды учеников снова становятся свободными, учителя и коды остаются.
+ */
+export function clearPlantings(state: GardenState): { ok: true; removed: number } {
+  const removed = state.plantings.length;
+  state.plantings = [];
+  for (const st of Object.values(state.studentCodes)) st.plantingId = null;
+  bump(state);
+  return { ok: true, removed };
+}
+
 export function generateStudentCodes(
   state: GardenState,
   count: number,

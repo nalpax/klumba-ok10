@@ -60,7 +60,18 @@ npm run dev
 с Docker, например Timeweb Cloud, Selectel, Yandex Cloud или Beget VPS. Серверы в России быстрее открываются у учеников
 на мобильном интернете. Vercel и подобные «бессерверные» хостинги **не подходят**: у них нет постоянного диска.
 
-### Вариант 1. VPS с Docker (рекомендую)
+### Вариант 0. VPS одной командой (проще всего, без домена)
+
+Пошагово для неспециалиста — в файле [УСТАНОВКА.md](УСТАНОВКА.md). Коротко: на чистом Ubuntu 22.04/24.04
+```bash
+apt update && apt install -y git
+git clone -b claude/teachers-garden-v2 https://github.com/nalpax/klumba-ok10 /opt/klumba
+sudo bash /opt/klumba/deploy/install.sh
+```
+Скрипт спросит пароль администратора, поставит Node.js 22 и nginx, соберёт сайт и запустит его как службу.
+Сайт откроется по адресу `http://IP-сервера`. Обновление: `sudo bash /opt/klumba/deploy/update.sh`.
+
+### Вариант 1. VPS с Docker
 
 1. Купите самый простой VPS (1 ядро, 1 ГБ памяти хватит) с Ubuntu и установите Docker.
 2. Скопируйте проект на сервер (`git clone …`) и создайте в папке файл `.env`:

@@ -1155,3 +1155,10 @@ html:has(.screen) { background: #ffe9b8; }
   filter: drop-shadow(0 8px 8px rgba(40, 20, 5, 0.35));
 }
 .world-sign__text { font-family: var(--font-serif); font-style: italic; font-weight: 700; font-size: 28px; fill: #fff4dc; }
+
+/* админка: очистка клумбы */
+.admin-danger { margin-top: 24px; padding: 18px 20px; border-radius: 18px; border: 1px solid rgba(200, 50, 31, 0.35); background: rgba(200, 50, 31, 0.06); }
+.admin-danger__confirm { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.admin-danger__open { margin-top: 10px; color: #9b2f1d; }
+.btn--danger { background: #c8321f; color: #fff; }
+.btn--danger:disabled { opacity: 0.5; }

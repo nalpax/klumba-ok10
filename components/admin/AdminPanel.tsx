@@ -153,6 +153,7 @@ export function AdminPanel() {
           }}
         />
       ) : null}
+      {tab === 'event' && stats ? <ClearPlantingsBlock total={stats.plantings} onDone={refreshStats} /> : null}
       {tab === 'teachers' ? (
         <TeachersTab
           teachers={teachers}
@@ -844,6 +845,60 @@ function ArchiveBlock() {
           {busy ? 'Готовим файл…' : 'Скачать архив клумбы'}
         </button>
       </div>
+    </div>
+  );
+}
+
+/** Удалить все цветы с клумбы — например, после проверки сайта перед настоящим запуском. С подтверждением словом. */
+function ClearPlantingsBlock({ total, onDone }: { total: number; onDone: () => void }) {
+  const [asking, setAsking] = useState(false);
+  const [word, setWord] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const confirmed = word.trim().toUpperCase() === 'УДАЛИТЬ';
+
+  const clear = async () => {
+    setBusy(true);
+    const res = await getApi()
+      .adminClearPlantings()
+      .catch(() => null);
+    setBusy(false);
+    if (!res) return setResult(ERROR_TEXT.network);
+    if (!res.ok) return setResult(ERROR_TEXT[res.error]);
+    setResult(`Готово: удалено ${res.removed} ${plural(res.removed, ['цветок', 'цветка', 'цветов'])}. Коды учеников снова свободны.`);
+    setAsking(false);
+    setWord('');
+    onDone();
+  };
+
+  return (
+    <div className="admin-danger">
+      <h3 className="admin-tab__title admin-closing__title">Очистить клумбу</h3>
+      <p className="admin-tab__lead">
+        Удаляет все цветы (сейчас их {total}). Учителя и коды остаются, а ученики, чьи цветы удалены, смогут посадить
+        цветок заново. Удобно перед запуском, если вы проверяли сайт пробными посадками. Отменить нельзя.
+      </p>
+      {result ? <p className="admin-notice">{result}</p> : null}
+      {asking ? (
+        <div className="admin-danger__confirm">
+          <label className="field">
+            <span className="field__label">Чтобы подтвердить, напишите слово УДАЛИТЬ</span>
+            <input className="field__input" value={word} onChange={(e) => setWord(e.target.value)} autoComplete="off" />
+          </label>
+          <div className="dialog__buttons">
+            <button type="button" className="btn btn--danger btn--sm" onClick={clear} disabled={!confirmed || busy}>
+              {busy ? 'Удаляем…' : 'Удалить все цветы'}
+            </button>
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => { setAsking(false); setWord(''); }} disabled={busy}>
+              Отмена
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="btn btn--ghost btn--sm admin-danger__open" onClick={() => { setAsking(true); setResult(null); }} disabled={total === 0}>
+          Удалить все цветы…
+        </button>
+      )}
     </div>
   );
 }

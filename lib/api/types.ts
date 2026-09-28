@@ -119,6 +119,8 @@ export interface Api {
   adminSaveTeacher(input: TeacherInput): Promise<AdminTeacherResult>;
   /** Удаляет учителя вместе со всеми его цветами; коды учеников, чьи цветы пропали, снова становятся свободными. */
   adminDeleteTeacher(id: number): Promise<{ ok: false; error: ApiError } | { ok: true; removed: number }>;
+  /** Удалить все цветы с клумбы; коды учеников снова свободны. */
+  adminClearPlantings(): Promise<{ ok: false; error: ApiError } | { ok: true; removed: number }>;
   /** Коды на посадку для класса. Общее число ограничено числом мест на клумбе. */
   adminGenerateStudentCodes(count: number, label: string): Promise<{ ok: true; codes: string[] } | { ok: false; error: ApiError }>;
   /** Личный код учителя для входа. Если код уже был, старый перестаёт действовать. */

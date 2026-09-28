@@ -160,6 +160,7 @@ export function createLiveApi(base = ''): Api {
     adminListTeachers: () => adminGet('admin-teachers'),
     adminSaveTeacher: (teacher) => post('admin-save-teacher', { teacher }, true),
     adminDeleteTeacher: (id) => post('admin-delete-teacher', { id }, true),
+    adminClearPlantings: () => post('admin-clear-plantings', {}, true),
     adminGenerateStudentCodes: (count, label) => post('admin-student-codes', { count, label }, true),
     adminGenerateTeacherCode: (teacherId) => post('admin-teacher-code', { teacherId }, true),
     async adminExportCodes() {

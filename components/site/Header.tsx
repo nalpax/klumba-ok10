@@ -2,6 +2,7 @@
 
 import { useAccount } from '@/components/account/AccountProvider';
 import { SCHOOL } from '@/lib/content';
+import { IS_ARCHIVE } from '@/lib/mode';
 
 export function Header() {
   const { session, openDialog, openAdminPanel } = useAccount();
@@ -15,9 +16,10 @@ export function Header() {
       </a>
       <nav className="nav__links" aria-label="Разделы страницы">
         <a href="#greeting">Поздравление</a>
-        <a href="#how">Как это работает</a>
+        {IS_ARCHIVE ? null : <a href="#how">Как это работает</a>}
         <a href="#garden">Клумба</a>
       </nav>
+      {IS_ARCHIVE ? null : (
       <div className="nav__actions">
         <button type="button" className="btn btn--lime btn--sm" onClick={() => (isAdmin ? openAdminPanel() : openDialog())}>
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -33,6 +35,7 @@ export function Header() {
           {session ? (isAdmin ? 'Админка' : 'Кабинет') : 'Вход'}
         </button>
       </div>
+      )}
     </header>
   );
 }

@@ -9,7 +9,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "preview:build": "node scripts/build-preview.mjs",
-    "test:e2e": "node scripts/e2e.mjs"
+    "test:e2e": "node scripts/e2e.mjs",
+    "archive:build": "node scripts/build-preview.mjs --archive"
   },
   "dependencies": {
     "next": "^15.5.0",

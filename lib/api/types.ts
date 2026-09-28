@@ -92,7 +92,7 @@ export type AdminResult = { ok: false; error: ApiError } | { ok: true };
 export type AdminTeacherResult = { ok: false; error: ApiError } | { ok: true; teacher: Teacher; code?: string };
 
 export interface Api {
-  mode: 'demo' | 'live';
+  mode: 'demo' | 'live' | 'archive';
   /** Всё, что нужно для первой отрисовки. */
   load(): Promise<GardenSnapshot>;
   /** Новые цветы в реальном времени. Возвращает функцию отписки. */

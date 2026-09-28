@@ -7,6 +7,7 @@ import { AdminPanel } from '@/components/admin/AdminPanel';
 import { BigScreen } from '@/components/screen/BigScreen';
 import { useEventStatus } from '@/components/garden/useGarden';
 import { DEFAULT_GREETING } from '@/lib/content';
+import { IS_ARCHIVE } from '@/lib/mode';
 import { LeafGarland } from './Decor';
 import { PageLeaves } from './PageLeaves';
 import { Footer } from './Footer';
@@ -26,8 +27,12 @@ function Page() {
         <Hero status={status} />
         <GreetingSection greeting={DEFAULT_GREETING} />
         <LeafGarland />
-        <HowItWorks />
-        <LeafGarland />
+        {IS_ARCHIVE ? null : (
+          <>
+            <HowItWorks />
+            <LeafGarland />
+          </>
+        )}
         <GardenSection />
       </main>
       <Footer />

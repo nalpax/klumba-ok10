@@ -1,11 +1,19 @@
-// Статический предпросмотр сайта в демо-режиме (без сервера): данные живут в памяти браузера.
-// Запуск: npm run build && npm run preview:build → папка preview-dist/ (index.html можно открыть на любом хостинге).
+// Статическая сборка сайта без сервера — два варианта:
+//   npm run build && npm run preview:build            → preview-dist/: демо, данные в памяти браузера
+//   npm run build && npm run archive:build -- файл.json → archive-dist/: архив клумбы только для просмотра
+//     (файл — «Скачать архив клумбы» из админки). Папку можно выложить на любой хостинг, например GitHub Pages.
 import * as esbuild from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
-const out = path.join(root, 'preview-dist');
+const archiveIdx = process.argv.indexOf('--archive');
+const archiveFile = archiveIdx > -1 ? process.argv[archiveIdx + 1] : null;
+if (archiveIdx > -1 && (!archiveFile || !fs.existsSync(archiveFile))) {
+  console.error('Укажите файл архива: npm run archive:build -- klumba-archive.json');
+  process.exit(1);
+}
+const out = path.join(root, archiveFile ? 'archive-dist' : 'preview-dist');
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
 
@@ -17,7 +25,12 @@ await esbuild.build({
   target: 'es2020',
   jsx: 'automatic',
   alias: { '@': root },
-  define: { 'process.env.NODE_ENV': '"production"', 'process.env.NEXT_PUBLIC_DEMO': '"1"', 'process.env.NEXT_PUBLIC_SITE_URL': '""' },
+  define: {
+    'process.env.NODE_ENV': '"production"',
+    'process.env.NEXT_PUBLIC_DEMO': archiveFile ? '""' : '"1"',
+    'process.env.NEXT_PUBLIC_ARCHIVE': archiveFile ? '"1"' : '""',
+    'process.env.NEXT_PUBLIC_SITE_URL': '""',
+  },
   minify: true,
   logLevel: 'warning',
 });
@@ -42,7 +55,7 @@ fs.writeFileSync(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>С Днём учителя! Клумба ОК № 10 — демо</title>
+<title>С Днём учителя! Клумба ОК № 10${archiveFile ? "" : " — демо"}</title>
 <link rel="icon" href="brand/icon-192.png">
 <link rel="stylesheet" href="site.css">
 </head>
@@ -50,4 +63,16 @@ fs.writeFileSync(
 </html>
 `,
 );
-console.log('preview-dist готов');
+if (archiveFile) {
+  // проверяем, что это действительно архив клумбы, и кладём рядом со страницей
+  const snap = JSON.parse(fs.readFileSync(archiveFile, 'utf8'));
+  if (!Array.isArray(snap.plantings) || !Array.isArray(snap.teachers)) {
+    console.error('Это не архив клумбы: нет списка цветов или учителей.');
+    process.exit(1);
+  }
+  fs.writeFileSync(path.join(out, 'archive.json'), JSON.stringify(snap));
+  fs.writeFileSync(path.join(out, '.nojekyll'), '');
+  console.log(`archive-dist готов: ${snap.plantings.length} цветов, ${snap.teachers.length} учителей`);
+} else {
+  console.log('preview-dist готов');
+}

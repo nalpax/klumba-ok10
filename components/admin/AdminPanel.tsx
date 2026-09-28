@@ -295,6 +295,8 @@ function EventTab({
           {closingSaved && !dirty ? <span className="admin-closing__ok">Сохранено ✓</span> : null}
         </div>
       </div>
+
+      <ArchiveBlock />
     </div>
   );
 }
@@ -796,6 +798,51 @@ function QrTab() {
         <a className="btn btn--lime btn--sm" href={`${url.trim().replace(/\/+$/, '')}/?screen`} target="_blank" rel="noreferrer">
           Открыть режим экрана
         </a>
+      </div>
+    </div>
+  );
+}
+
+/** Скачать архив клумбы: из него собирается вечная версия сайта только для просмотра (npm run archive:build). */
+function ArchiveBlock() {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const download = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const snap = await getApi().load();
+      // в архив попадает только публичное: учителя (без пожеланий), цветы, тексты. Кодов в нём нет.
+      const blob = new Blob([JSON.stringify(snap)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `klumba-archive-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError(ERROR_TEXT.network);
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div className="admin-closing">
+      <h3 className="admin-tab__title admin-closing__title">Архив клумбы</h3>
+      <p className="admin-tab__lead">
+        После праздника скачайте архив: из него собирается версия сайта только для просмотра — все цветы и учителя
+        остаются навсегда, а сервер можно отключить. Кодов и личных пожеланий в архиве нет.
+      </p>
+      {error ? (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <div className="dialog__buttons admin-closing__buttons">
+        <button type="button" className="btn btn--ghost btn--sm" onClick={download} disabled={busy}>
+          {busy ? 'Готовим файл…' : 'Скачать архив клумбы'}
+        </button>
       </div>
     </div>
   );

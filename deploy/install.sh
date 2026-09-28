@@ -83,8 +83,15 @@ else
 fi
 chmod 600 "$APP_DIR/.env"
 
+# ---------- хранилище компонентов ----------
+# из некоторых российских сетей registry.npmjs.org не открывается — тогда берём официальное зеркало
+if ! curl -fsSI --max-time 15 https://registry.npmjs.org/react >/dev/null 2>&1; then
+  say "registry.npmjs.org недоступен — использую зеркало registry.npmmirror.com"
+  npm config set registry https://registry.npmmirror.com
+fi
+
 # ---------- сборка ----------
-say "Собираю сайт (2–5 минут)"
+say "Собираю сайт (5–10 минут)"
 cd "$APP_DIR"
 npm ci --no-audit --no-fund
 npm run build

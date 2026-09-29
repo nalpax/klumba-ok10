@@ -118,7 +118,7 @@ function LoginForm({ director = false }: { director?: boolean }) {
             ))}
             {demo.teachers.slice(0, 2).map((t, i) => (
               <button type="button" key={t.code} className="chip" onClick={() => { setValue(t.code); setError(null); }}>
-                <span>{i === 0 ? 'Директор' : 'Учитель'}</span> {t.code}
+                <span>{i === 0 ? 'Директор' : 'Учителя'}</span> {t.code}
               </button>
             ))}
             {demo.admin ? (
@@ -144,7 +144,7 @@ function StudentCabinet({ session }: { session: StudentSession }) {
       <p className="dialog__lead">
         {used
           ? 'Ваш цветок уже растёт на нашей общей клумбе. Посадить второй нельзя: один код — один цветок.'
-          : 'Можно посадить один цветок: выберите учителя, цветок, цвет и место на клумбе.'}
+          : 'Можно посадить один цветок: выберите, кому он (предметная область или директор), цветок, цвет и место на клумбе.'}
       </p>
       <div className="dialog__buttons">
         {used ? (
@@ -211,7 +211,7 @@ function AdminCabinet() {
   return (
     <div className="cabinet">
       <h2 className="dialog__title">Вы вошли как администратор</h2>
-      <p className="dialog__lead">Управление посадкой, учителями и кодами — в отдельной панели.</p>
+      <p className="dialog__lead">Управление посадкой, предметными областями и кодами — в отдельной панели.</p>
       <div className="dialog__buttons">
         <button type="button" className="btn btn--lime" onClick={() => { closeDialog(); openAdminPanel(); }}>
           Открыть админ-панель

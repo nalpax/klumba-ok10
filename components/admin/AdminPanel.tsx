@@ -17,7 +17,7 @@ import { plural } from '@/lib/plural';
 
 type Tab = 'event' | 'teachers' | 'codes' | 'qr';
 
-// новому учителю по умолчанию доступны все цветы — ученикам есть из чего выбрать
+// новой предметной области по умолчанию доступны все цветы — ученикам есть из чего выбрать
 const EMPTY_TEACHER: TeacherInput = {
   firstName: '', middleName: '', lastName: '', subject: '', color: FLOWER_COLORS[0].hex, flowerIds: [...ALL_FLOWER_IDS], wish: '',
 };
@@ -119,7 +119,7 @@ export function AdminPanel() {
           </div>
           <div>
             <strong>{stats.teacherCodesTotal}</strong>
-            <span>кодов учителей выдано</span>
+            <span>кодов для открыток выдано</span>
           </div>
         </div>
       ) : null}
@@ -129,7 +129,7 @@ export function AdminPanel() {
           Мероприятие
         </button>
         <button type="button" role="tab" aria-selected={tab === 'teachers'} onClick={() => setTab('teachers')}>
-          Учителя
+          Кому цветы
         </button>
         <button type="button" role="tab" aria-selected={tab === 'codes'} onClick={() => setTab('codes')}>
           Коды ученикам
@@ -240,8 +240,8 @@ function EventTab({
       {stats.teachersWithoutWish > 0 ? (
         <p className="notice notice--plain">
           <span className="notice__mark" aria-hidden="true">!</span>
-          {stats.teachersWithoutWish} {plural(stats.teachersWithoutWish, ['учитель', 'учителя', 'учителей'])} без личного пожелания —
-          {' '}им откроется запасной текст открытки. Можно дописать в разделе «Учителя».
+          Без пожелания: {stats.teachersWithoutWish} —
+          {' '}им откроется запасной текст открытки. Можно дописать в разделе «Кому цветы».
         </p>
       ) : null}
 
@@ -380,9 +380,9 @@ function TeachersTab({
   return (
     <div className="admin-tab">
       <div className="admin-tab__head">
-        <p className="admin-tab__lead">Учителя, которых видят ученики при выборе, кому посадить цветок.</p>
+        <p className="admin-tab__lead">Предметные области и директор — ученики выбирают из них, кому посадить цветок. У каждой области свой код для открытки (🔑): его можно дать руководителю методобъединения.</p>
         <button type="button" className="btn btn--lime btn--sm" onClick={() => startEditing('new')}>
-          + Добавить учителя
+          + Добавить предметную область
         </button>
       </div>
 
@@ -554,26 +554,49 @@ function TeacherForm({
       <button type="button" className="link-button admin-form__back" onClick={onCancel}>
         ← Назад к списку
       </button>
-      <h3 className="admin-tab__title">{isNew ? 'Новый учитель' : `Изменить: ${fullName(value)}`}</h3>
+      <h3 className="admin-tab__title">{isNew ? 'Новая предметная область' : `Изменить: ${fullName(value)}`}</h3>
 
-      <div className="admin-form__grid">
-        <label className="field">
-          <span className="field__label">Имя</span>
-          <input className="field__input" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
-        </label>
-        <label className="field">
-          <span className="field__label">Отчество</span>
-          <input className="field__input" value={form.middleName} onChange={(e) => setForm({ ...form, middleName: e.target.value })} />
-        </label>
-        <label className="field">
-          <span className="field__label">Фамилия</span>
-          <input className="field__input" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
-        </label>
-        <label className="field">
-          <span className="field__label">Предмет</span>
-          <input className="field__input" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
-        </label>
-      </div>
+      {value.isDirector ? (
+        <div className="admin-form__grid">
+          <label className="field">
+            <span className="field__label">Имя</span>
+            <input className="field__input" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
+          </label>
+          <label className="field">
+            <span className="field__label">Отчество</span>
+            <input className="field__input" value={form.middleName} onChange={(e) => setForm({ ...form, middleName: e.target.value })} />
+          </label>
+          <label className="field">
+            <span className="field__label">Фамилия</span>
+            <input className="field__input" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
+          </label>
+          <label className="field">
+            <span className="field__label">Должность</span>
+            <input className="field__input" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
+          </label>
+        </div>
+      ) : (
+        <div className="admin-form__grid">
+          <label className="field">
+            <span className="field__label">Название предметной области</span>
+            <input
+              className="field__input"
+              value={form.lastName}
+              placeholder="Например: Математика и информатика"
+              onChange={(e) => setForm({ ...form, lastName: e.target.value, firstName: '', middleName: '' })}
+            />
+          </label>
+          <label className="field">
+            <span className="field__label">Какие предметы входят</span>
+            <input
+              className="field__input"
+              value={form.subject}
+              placeholder="Например: алгебра, геометрия, информатика"
+              onChange={(e) => setForm({ ...form, subject: e.target.value })}
+            />
+          </label>
+        </div>
+      )}
 
       <div className="field">
         <span className="field__label">Цвет в легенде клумбы</span>
@@ -590,7 +613,7 @@ function TeacherForm({
       </div>
 
       <div className="field">
-        <span className="field__label">Какие цветы можно посадить для этого учителя</span>
+        <span className="field__label">Какие цветы можно посадить</span>
         <div className="admin-flowers">
           {flowers.map((f) => (
             <label className="admin-flower" key={f.id}>
@@ -605,7 +628,7 @@ function TeacherForm({
       </div>
 
       <label className="field">
-        <span className="field__label">Личное пожелание для открытки (необязательно)</span>
+        <span className="field__label">Пожелание для открытки (необязательно)</span>
         <textarea
           className="field__input admin-textarea"
           rows={5}
@@ -623,7 +646,7 @@ function TeacherForm({
 
       <div className="dialog__buttons admin-form__actions">
         <button type="button" className="btn btn--lime" onClick={submit} disabled={busy}>
-          {busy ? 'Сохраняем…' : isNew ? 'Добавить учителя' : 'Сохранить'}
+          {busy ? 'Сохраняем…' : isNew ? 'Добавить' : 'Сохранить'}
         </button>
         <button type="button" className="btn btn--ghost" onClick={onCancel} disabled={busy}>
           Отмена
@@ -645,7 +668,7 @@ function CodesTab({ stats, onGenerated }: { stats: AdminStats; onGenerated: () =
   const printCards = async () => {
     if (!codes) return;
     const win = openPrintWindow();
-    if (win) await printCodeCards(win, defaultSiteUrl(), codes, 'Посади цветок для учителя 🌷', codesLabel);
+    if (win) await printCodeCards(win, defaultSiteUrl(), codes, 'Посади цветок для наших учителей 🌷', codesLabel);
   };
 
   const generate = async () => {

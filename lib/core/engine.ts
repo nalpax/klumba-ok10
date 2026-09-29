@@ -242,7 +242,9 @@ export function saveTeacher(
     ? [...new Set(input.flowerIds.map(Number))].filter((id) => FLOWERS.some((f) => f.id === id))
     : [];
   const wish = String(input.wish ?? '').trim().slice(0, MAX_TEXT);
-  if (!firstName || !lastName || !subject || !/^#[0-9A-Fa-f]{6}$/.test(color) || flowerIds.length === 0) {
+  const editing = input.id != null ? state.teachers.find((t) => t.id === Number(input.id)) : undefined;
+  // у директора — полное имя; у предметной области — только название (lastName) и список предметов
+  if ((editing?.isDirector && !firstName) || !lastName || !subject || !/^#[0-9A-Fa-f]{6}$/.test(color) || flowerIds.length === 0) {
     return fail('validation');
   }
 

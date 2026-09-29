@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { FlowerPreview } from '@/components/garden/FlowerPreview';
 import { describeFlower } from '@/lib/garden/flowers';
 import type { FlowerColor, FlowerType, Teacher } from '@/lib/garden/types';
-import { fullName } from '@/lib/names';
+import { fullName, initials as initialsOf } from '@/lib/names';
 
 export interface Choice {
   teacherId: number | null;
@@ -28,7 +28,7 @@ function Avatar({ teacher }: { teacher: Teacher }) {
   if (teacher.photoUrl) {
     return <img className="avatar" src={teacher.photoUrl} alt="" width={44} height={44} loading="lazy" />;
   }
-  const initials = `${teacher.lastName.charAt(0)}${teacher.firstName.charAt(0)}`.toUpperCase();
+  const initials = initialsOf(teacher);
   return (
     <span className="avatar avatar--initials" style={{ boxShadow: `inset 0 0 0 2px ${teacher.color}` }} aria-hidden="true">
       {initials}
@@ -36,7 +36,7 @@ function Avatar({ teacher }: { teacher: Teacher }) {
   );
 }
 
-/** Шаги выбора: учитель → цветок → цвет. Место на клумбе выбирается следующим шагом прямо на клумбе. */
+/** Шаги выбора: предметная область (или директор) → цветок → цвет. Место на клумбе выбирается следующим шагом прямо на клумбе. */
 export function PlantingPanel({ teachers, flowers, colors, choice, onChange, onNext, busy, notice }: PlantingPanelProps) {
   const [query, setQuery] = useState('');
 
@@ -74,7 +74,7 @@ export function PlantingPanel({ teachers, flowers, colors, choice, onChange, onN
         <div className="plant__steps">
           <fieldset className="plant__step">
             <legend>
-              <span className="step-num">1</span> Выберите учителя
+              <span className="step-num">1</span> Кому посадить цветок
             </legend>
             {teachers.length > 6 ? (
               <input
@@ -82,8 +82,8 @@ export function PlantingPanel({ teachers, flowers, colors, choice, onChange, onN
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Найти учителя или предмет"
-                aria-label="Найти учителя или предмет"
+                placeholder="Найти предмет"
+                aria-label="Найти предмет"
               />
             ) : null}
             <ul className="teacher-list">
@@ -127,7 +127,7 @@ export function PlantingPanel({ teachers, flowers, colors, choice, onChange, onN
                 ))}
               </div>
             ) : (
-              <p className="plant__empty">Сначала выберите учителя.</p>
+              <p className="plant__empty">Сначала выберите, кому цветок.</p>
             )}
           </fieldset>
 
@@ -161,10 +161,10 @@ export function PlantingPanel({ teachers, flowers, colors, choice, onChange, onN
             {teacher && flower && color ? (
               <>
                 <strong>{describeFlower(color.name, flower.kind, flower.name).replace(/^./, (c) => c.toUpperCase())}</strong>
-                <span>для учителя: {fullName(teacher)}</span>
+                <span>кому: {fullName(teacher)}</span>
               </>
             ) : (
-              <span>Выберите учителя и цветок.</span>
+              <span>Выберите, кому цветок, и сам цветок.</span>
             )}
           </p>
           {notice ? (

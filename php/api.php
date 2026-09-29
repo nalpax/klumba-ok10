@@ -145,6 +145,19 @@ function loadState(): array
         if (is_array($s) && isset($s['teachers'])) {
             $s['studentCodes'] = $s['studentCodes'] ?? [];
             $s['teacherCodes'] = $s['teacherCodes'] ?? [];
+            // клумба, созданная до предметных областей (только директор), — добавляем их один раз
+            if (empty($s['areasSeeded'])) {
+                if (count($s['teachers']) === 1) {
+                    foreach (catalog()['empty']['teachers'] as $t) {
+                        if (empty($t['isDirector'])) {
+                            $t['id'] = $s['nextTeacherId']++;
+                            $s['teachers'][] = $t;
+                        }
+                    }
+                    $s['version']++;
+                }
+                $s['areasSeeded'] = true;
+            }
             return $s;
         }
         // файл испорчен — пробуем резервную копию
@@ -394,7 +407,9 @@ function saveTeacher(array &$s, $in): array
         }
     }
     $wish = clean($in['wish'] ?? '', MAX_TEXT);
-    if ($firstName === '' || $lastName === '' || $subject === '' || !preg_match('/^#[0-9A-Fa-f]{6}$/', $color) || !$flowerIds) {
+    // у директора — полное имя; у предметной области — только название (lastName) и список предметов
+    $editing = isset($in['id']) && $in['id'] !== null ? findTeacher($s, (int) $in['id']) : null;
+    if (($editing && !empty($editing['isDirector']) && $firstName === '') || $lastName === '' || $subject === '' || !preg_match('/^#[0-9A-Fa-f]{6}$/', $color) || !$flowerIds) {
         return fail('validation');
     }
 

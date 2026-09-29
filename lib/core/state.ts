@@ -1,5 +1,6 @@
 import { DEFAULT_CLOSING, type ClosingContent, type EventStatus } from '@/lib/content';
 import type { Planting, Teacher } from '@/lib/garden/types';
+import { SUBJECT_AREAS, type SubjectArea } from './areas';
 
 /** Учитель вместе с тем, что видит только администратор (личное пожелание). */
 export interface StoredTeacher extends Teacher {
@@ -58,16 +59,30 @@ export function makeDirector(allFlowerIds: number[]): StoredTeacher {
   };
 }
 
+/** Предметная область — «учитель» без имени: название в lastName, предметы в subject. */
+export function makeArea(a: SubjectArea, allFlowerIds: number[]): StoredTeacher {
+  return {
+    id: a.id,
+    lastName: a.lastName,
+    firstName: '',
+    middleName: '',
+    subject: a.subject,
+    color: a.color,
+    flowerIds: [...allFlowerIds],
+    wish: a.wish,
+  };
+}
+
 export function emptyState(allFlowerIds: number[]): GardenState {
   return {
     schema: 1,
     status: 'open',
     closing: { ...DEFAULT_CLOSING },
-    teachers: [makeDirector(allFlowerIds)],
+    teachers: [makeDirector(allFlowerIds), ...SUBJECT_AREAS.map((a) => makeArea(a, allFlowerIds))],
     plantings: [],
     studentCodes: {},
     teacherCodes: {},
-    nextTeacherId: DIRECTOR_ID + 1,
+    nextTeacherId: Math.max(DIRECTOR_ID, ...SUBJECT_AREAS.map((a) => a.id)) + 1,
     nextPlantingId: 1,
     version: 1,
   };

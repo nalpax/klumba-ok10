@@ -110,24 +110,24 @@ ok(await p.locator('.admin-tab').count() === 1, 'вход администрат
 await p.click('.admin-tabs button:nth-child(2)'); await p.waitForTimeout(700);
 await p.screenshot({ path: S + '10_admin_teachers.png' });
 ok(await p.locator('.admin-teacher-row--director [aria-label^="Удалить"]').count() === 0, 'директора удалить нельзя');
-const row = p.locator('.admin-teacher-row', { hasText: 'Петрова' });
+const row = p.locator('.admin-teacher-row', { hasText: 'Русский язык' });
 await row.locator('[aria-label^="Удалить"]').click();
 const confirmTxt = await row.locator('.admin-teacher-row__confirm').textContent();
 ok(/вместе с \d+/.test(confirmTxt), 'предупреждение: ' + confirmTxt);
 await row.locator('button', { hasText: 'Да' }).click(); await p.waitForTimeout(800);
 const notice = await p.locator('.admin-notice').textContent();
-ok(/Удалено: Петрова.*\d+ цвет/.test(notice), notice);
+ok(/Удалено: Русский язык.*\d+ цвет/.test(notice), notice);
 const pageToCheck = DEMO ? p : m;
 if (DEMO) await p.click('.modal--admin .modal__close');
 await pageToCheck.waitForTimeout(5500);
 const after = Number(await pageToCheck.locator('.garden__count strong').textContent());
 if (!DEMO) ok(after < before, `вторая вкладка: цветов было ${before}, стало ${after}`);
 else ok(after < 420, `цветов после удаления: ${after}`);
-ok(!(await pageToCheck.locator('.legend').textContent()).includes('Петрова'), 'удалённый учитель пропал из легенды');
+ok(!(await pageToCheck.locator('.legend').textContent()).includes('Русский язык'), 'удалённый учитель пропал из легенды');
 if (DEMO) { await p.click('.nav__actions button'); await p.waitForTimeout(500); }
 
 // код учителя из админки → вход
-const r2 = p.locator('.admin-teacher-row', { hasText: 'Иванов' });
+const r2 = p.locator('.admin-teacher-row', { hasText: 'Математика' });
 await r2.locator('[aria-label^="Новый код"]').click(); await p.waitForTimeout(600);
 const code = (await p.locator('.admin-code-reveal strong').textContent()).trim();
 ok(/^[A-Z0-9]{5}-[A-Z0-9]{5}$/.test(code), 'код учителя показан без двойного дефиса: ' + code);

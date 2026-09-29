@@ -56,7 +56,7 @@ export function ConfirmPlanting({ open, teacherName, subject, flowerPhrase, busy
         <h2 className="dialog__title">Вы выбрали</h2>
         <dl className="confirm__list">
           <div>
-            <dt>Учитель</dt>
+            <dt>Кому</dt>
             <dd>
               {teacherName}
               <span>{subject}</span>
@@ -69,7 +69,7 @@ export function ConfirmPlanting({ open, teacherName, subject, flowerPhrase, busy
         </dl>
         <p className="notice notice--plain">
           <span className="notice__mark" aria-hidden="true">!</span>
-          После посадки изменить цветок, цвет, учителя или место будет невозможно. Посадить?
+          После посадки изменить цветок, цвет, получателя или место будет невозможно. Посадить?
         </p>
         <p className="form-error" role="alert">
           {error}
@@ -112,13 +112,13 @@ export function ThanksModal({ open, teacherName, flowerPhrase, kind, color, onCl
           {teacherName ? (
             <>
               {' '}
-              — для учителя <strong>{teacherName}</strong>
+              — <strong>{teacherName}</strong>
             </>
           ) : null}
           .
         </p>
         <p className="thanks__sub">
-          Вы сказали «спасибо» так, что это видит вся школа. Учитель увидит ваш цветок, когда откроет свою открытку.
+          Вы сказали «спасибо» так, что это видит вся школа. Учителя увидят ваш цветок, когда откроют свою открытку.
         </p>
         <div className="dialog__buttons thanks__buttons">
           <button type="button" className="btn btn--lime btn--lg" onClick={onClose}>

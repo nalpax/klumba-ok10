@@ -83,7 +83,7 @@ export function BigScreen() {
     push({
       kind: 'flower',
       title: 'Новый цветок!',
-      text: `${what.charAt(0).toUpperCase()}${what.slice(1)} — ${t ? (t.isDirector ? `для директора: ${fullName(t)}` : `для учителя: ${fullName(t)}`) : 'для учителя'}`,
+      text: `${what.charAt(0).toUpperCase()}${what.slice(1)} — ${t ? (t.isDirector ? `для директора: ${fullName(t)}` : fullName(t)) : 'для учителей'}`,
       color: p.color,
     });
   };
@@ -100,7 +100,7 @@ export function BigScreen() {
         backTimer.current = setTimeout(() => gardenRef.current?.home(), FOCUS_MS);
         push({ kind: 'info', title: '🌻 Подсолнух в центре', text: `Главный цветок клумбы — директору школы, ${fullName(director)}` });
       } else {
-        push({ kind: 'info', title: 'Спасибо учителям! 🍂', text: 'Каждый цветок на этой клумбе — «спасибо» от одного ученика' });
+        push({ kind: 'info', title: 'Спасибо учителям! 🍂', text: 'Каждый цветок на этой клумбе — «спасибо» от одного ученика нашим учителям' });
       }
     }, INFO_EVERY_MS);
     return () => clearInterval(id);

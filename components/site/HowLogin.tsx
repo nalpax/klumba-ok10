@@ -10,7 +10,7 @@ export function HowLogin() {
       <button type="button" className="btn btn--lime btn--lg" onClick={() => openDialog()}>
         {session ? 'Открыть кабинет' : 'Войти по коду'}
       </button>
-      <p>Вы учитель? Войдите со своим кодом: для вас приготовлена открытка.</p>
+      <p>Вы учитель? Войдите с кодом своей предметной области: для вас приготовлена открытка.</p>
       {!session ? (
         <button type="button" className="director-link" onClick={() => openDialog('director')}>
           <span aria-hidden="true">🌻</span> Вход для директора школы

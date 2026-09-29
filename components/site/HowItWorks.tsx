@@ -93,7 +93,7 @@ export function HowItWorks() {
           <li className="step glass">
             <div className="step__head">
               <span className="step__icon"><IconFlower /></span>
-              <h3>Выбери цвет, учителя и цветок</h3>
+              <h3>Выбери предмет, цветок и цвет</h3>
             </div>
             <div className="step__art step__art--flowers">
               <div className="step__flowers">

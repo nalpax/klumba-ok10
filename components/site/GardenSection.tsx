@@ -11,7 +11,7 @@ import { STATUS_TEXT, type ClosingContent } from '@/lib/content';
 import { describeFlower } from '@/lib/garden/flowers';
 import { FLOWER_COLORS } from '@/lib/garden/palette';
 import type { Planting, Slot, Teacher } from '@/lib/garden/types';
-import { fullName, shortName } from '@/lib/names';
+import { fullName, isArea, shortName } from '@/lib/names';
 import { plural } from '@/lib/plural';
 import { isArchive } from '@/lib/mode';
 import { totalCaption } from '@/lib/total';
@@ -53,7 +53,7 @@ function ClosingPanel({ closing, plantings, teachers }: { closing: ClosingConten
               <strong>
                 {stats.reached} из {stats.teachersTotal}
               </strong>
-              <span>{plural(stats.teachersTotal, ['учителя', 'учителей', 'учителей'])} получили цветы</span>
+              <span>получили цветы (директор и предметные области)</span>
             </li>
             {stats.top ? (
               <li>
@@ -237,7 +237,7 @@ export function GardenSection() {
       <Bar id="plant">
         <p>
           <strong>{fullName(session.teacher)}</strong>,{' '}
-          {isDirector ? 'подсолнух в центре клумбы — ваш, а ещё для вас посажено' : 'для вас посажено'} {mine}{' '}
+          {isDirector ? 'подсолнух в центре клумбы — ваш, а ещё для вас посажено' : 'для учителей посажено'} {mine}{' '}
           {plural(mine, ['цветок', 'цветка', 'цветов'])} {isDirector ? '🌻' : '🌷'}
         </p>
         <div className="bar__buttons">
@@ -350,7 +350,7 @@ export function GardenSection() {
           overlay={overlay}
         />
 
-        <ul className="legend" aria-label="Для каких учителей посажены цветы">
+        <ul className="legend" aria-label="Кому посажены цветы">
           {g.teachers.map((t) => (
             <li key={t.id}>
               <button
@@ -358,12 +358,12 @@ export function GardenSection() {
                 className="legend__item"
                 aria-pressed={focusTeacherId === t.id}
                 onClick={() => toggleFocus(t.id)}
-                title="Показать цветы этого учителя"
+                title="Показать только эти цветы"
               >
                 <span className="legend__dot" style={{ background: t.color }} aria-hidden="true" />
                 <span className="legend__text">
-                  <span>{t.subject}</span>
-                  <small>{shortName(t)}</small>
+                  <span>{isArea(t) ? t.lastName : t.subject}</span>
+                  <small>{isArea(t) ? t.subject : shortName(t)}</small>
                 </span>
                 <b>{counts.get(t.id) ?? 0}</b>
               </button>

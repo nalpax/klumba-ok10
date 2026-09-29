@@ -32,8 +32,32 @@ function configText(): string
             if ($conv === false && function_exists('mb_convert_encoding')) $conv = mb_convert_encoding($text, 'UTF-8', 'CP1251');
             $text = $conv === false ? '' : $conv;
         }
+        // некоторые онлайн-редакторы сохраняют кавычки как &#039; или &quot;
+        if (strpos($text, '&') !== false) $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     }
     return $text;
+}
+
+/**
+ * «Скелет» config.php для самопроверки: всё, что в кавычках (кроме названий настроек), и любые
+ * слова вне комментариев заменены точками — видно, как устроен файл, но не видно пароля.
+ */
+function configPreview(): array
+{
+    $out = [];
+    foreach (preg_split('/\R/u', configText()) as $line) {
+        $t = ltrim($line);
+        if ($t === '' || $t[0] === '*' || strncmp($t, '/*', 2) === 0 || strncmp($t, '//', 2) === 0) continue;
+        $masked = preg_replace_callback('/([\'"«»“”„`])(.*?)([\'"«»“”„`])/u', function ($m) {
+            return in_array($m[2], ['ADMIN_PASSWORD', 'KLUMBA_DATA_DIR'], true) ? $m[0] : $m[1] . ($m[2] === '' ? '' : '•••') . $m[3];
+        }, $line);
+        $masked = preg_replace_callback('/[^\s()\[\]{};,=\'"«»“”„`<>?•]+/u', function ($m) {
+            return in_array($m[0], ['define', 'php', 'ADMIN_PASSWORD', 'KLUMBA_DATA_DIR'], true) ? $m[0] : '•••';
+        }, $masked);
+        $out[] = mb_substr($masked, 0, 120);
+        if (count($out) >= 12) break;
+    }
+    return $out;
 }
 
 /** Значение define('NAME', '...') или null, если такой строки нет (строки-комментарии пропускаем). */
@@ -676,6 +700,7 @@ if ($method === 'GET') {
                 'adminPasswordSet' => adminPassword() !== null,
                 'configFound' => is_file(__DIR__ . '/config.php'),
                 'configPasswordLine' => configMatch('ADMIN_PASSWORD') !== null,
+                'configPreview' => configPreview(),
                 'authorizationHeader' => isset($_SERVER['HTTP_AUTHORIZATION']) || isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION']),
                 'plantings' => count($s['plantings']),
             ]);

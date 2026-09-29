@@ -48,10 +48,10 @@ function configPreview(): array
     foreach (preg_split('/\R/u', configText()) as $line) {
         $t = ltrim($line);
         if ($t === '' || $t[0] === '*' || strncmp($t, '/*', 2) === 0 || strncmp($t, '//', 2) === 0) continue;
-        $masked = preg_replace_callback('/([\'"«»“”„`])(.*?)([\'"«»“”„`])/u', function ($m) {
+        $masked = preg_replace_callback('/([\'"«»“”„`’‘])(.*?)([\'"«»“”„`’‘])/u', function ($m) {
             return in_array($m[2], ['ADMIN_PASSWORD', 'KLUMBA_DATA_DIR'], true) ? $m[0] : $m[1] . ($m[2] === '' ? '' : '•••') . $m[3];
         }, $line);
-        $masked = preg_replace_callback('/[^\s()\[\]{};,=\'"«»“”„`<>?•]+/u', function ($m) {
+        $masked = preg_replace_callback('/[^\s()\[\]{};,=\'"«»“”„`’‘<>?•]+/u', function ($m) {
             return in_array($m[0], ['define', 'php', 'ADMIN_PASSWORD', 'KLUMBA_DATA_DIR'], true) ? $m[0] : '•••';
         }, $masked);
         $out[] = mb_substr($masked, 0, 120);
@@ -60,16 +60,22 @@ function configPreview(): array
     return $out;
 }
 
-/** Значение define('NAME', '...') или null, если такой строки нет (строки-комментарии пропускаем). */
+/**
+ * Значение настройки из строки, где есть её название, или null, если такой строки нет.
+ * Читаем как можно мягче: после названия отбрасываем любые кавычки (в том числе «умные» ’ ‘ “ ” « »),
+ * запятые, скобки и точку с запятой — остаётся сам пароль. Строки-комментарии пропускаем.
+ */
 function configMatch(string $name): ?string
 {
-    $q = '[\'"«»“”„`]';
+    $junk = "\\s'\"`’‘‚′“”„«»,;()";
     foreach (preg_split('/\R/u', configText()) as $line) {
         $t = ltrim($line);
         if ($t === '' || $t[0] === '*' || strncmp($t, '//', 2) === 0 || $t[0] === '#' || strncmp($t, '/*', 2) === 0) continue;
-        if (preg_match('/define\s*\(\s*' . $q . '\s*' . $name . '\s*' . $q . '\s*,\s*' . $q . '(.*)' . $q . '\s*\)?\s*;?\s*$/u', $line, $m)) {
-            return trim($m[1]);
-        }
+        $i = strpos($line, $name);
+        if ($i === false) continue;
+        $rest = substr($line, $i + strlen($name));
+        $rest = preg_replace('/^[' . $junk . ']+|[' . $junk . ']+$/u', '', $rest);
+        return (string) $rest;
     }
     return null;
 }

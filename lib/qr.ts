@@ -111,9 +111,9 @@ export async function printVolunteerSheets(win: Window, siteUrl: string, codes: 
           <li>Выбери, кому посадить цветок, сам цветок, его цвет и место на клумбе.</li>
         </ol>
       </div>
-      <p class="cut">Разрежь по пунктиру и раздай талончики: один талончик — один ученик.</p>
+      <p class="cut">Один талон — один человек</p>
       <div class="tickets">${list
-        .map((c) => `<div class="t"><span>Посади цветок для учителя</span><b>${esc(formatCode(c))}</b></div>`)
+        .map((c) => `<div class="t"><b>${esc(formatCode(c))}</b></div>`)
         .join('')}</div>
     </section>`;
   win.document.open();
@@ -128,11 +128,10 @@ export async function printVolunteerSheets(win: Window, siteUrl: string, codes: 
     ol{padding-left:6mm;font-size:15px;line-height:1.45}ol li{margin-bottom:2mm}ol li::marker{color:#2f5a0f;font-weight:700}
     .cut{text-align:center;color:#6d6650;font-size:11px;margin-bottom:2mm}
     .tickets{display:grid;grid-template-columns:repeat(3,1fr)}
-    .t{height:17.6mm;border:1px dashed #9bb07a;background:#fffdf5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1mm}
-    .t span{font-size:10px;color:#6d6650}
-    .t b{font-size:20px;letter-spacing:.06em;font-family:'DejaVu Sans Mono',Consolas,monospace}
+    .t{height:17.6mm;border:.5px solid #c9d3b4;background:#fffdf5;display:flex;align-items:center;justify-content:center}
+    .t b{font-size:22px;letter-spacing:.06em;font-family:'DejaVu Sans Mono',Consolas,monospace}
     </style></head><body>
-    <div class="bar"><button onclick="print()">Печать</button><span>${codes.length} ${codes.length === 1 ? 'код' : 'кодов'} · листов: ${pages.length}. Разрежьте талончики по пунктиру.</span></div>
+    <div class="bar"><button onclick="print()">Печать</button><span>${codes.length} ${codes.length === 1 ? 'код' : 'кодов'} · листов: ${pages.length}</span></div>
     ${pages.map((p, i) => sheet(p, i + 1)).join('')}</body></html>`);
   win.document.close();
 }

@@ -10,7 +10,49 @@
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
 
-require __DIR__ . '/config.php';
+/**
+ * Настройки читаем из config.php как текст, а не выполняем его: если при правке файла
+ * случайно сломать кавычку или скобку, сайт всё равно продолжит работать.
+ */
+function configValue(string $name): string
+{
+    static $text = null;
+    if ($text === null) $text = (string) @file_get_contents(__DIR__ . '/config.php');
+    $q = '[\'"«»“”„]';
+    if (preg_match('/define\s*\(\s*' . $q . $name . $q . '\s*,\s*' . $q . '(.*?)' . $q . '\s*\)/u', $text, $m)) {
+        return trim($m[1]);
+    }
+    return '';
+}
+
+// Если на хостинге нет расширения mbstring — простые замены (для кириллицы и латиницы этого достаточно).
+if (!function_exists('mb_strtoupper')) {
+    function mb_chars(string $s): array
+    {
+        preg_match_all('/./us', $s, $m);
+        return $m[0];
+    }
+    function mb_strtoupper(string $s, $enc = null): string
+    {
+        $lo = mb_chars('абвгдеёжзийклмнопрстуфхцчшщъыьэюя');
+        $up = mb_chars('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ');
+        return strtoupper(str_replace($lo, $up, $s));
+    }
+    function mb_strtolower(string $s, $enc = null): string
+    {
+        $lo = mb_chars('абвгдеёжзийклмнопрстуфхцчшщъыьэюя');
+        $up = mb_chars('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ');
+        return strtolower(str_replace($up, $lo, $s));
+    }
+    function mb_strlen(string $s, $enc = null): int
+    {
+        return count(mb_chars($s));
+    }
+    function mb_substr(string $s, int $start, ?int $len = null, $enc = null): string
+    {
+        return implode('', array_slice(mb_chars($s), $start, $len));
+    }
+}
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -50,7 +92,7 @@ function dataDir(): string
     static $dir = null;
     if ($dir !== null) return $dir;
     $candidates = [];
-    if (defined('KLUMBA_DATA_DIR') && KLUMBA_DATA_DIR !== '') $candidates[] = KLUMBA_DATA_DIR;
+    if (configValue('KLUMBA_DATA_DIR') !== '') $candidates[] = configValue('KLUMBA_DATA_DIR');
     if (getenv('KLUMBA_DATA_DIR')) $candidates[] = getenv('KLUMBA_DATA_DIR');
     $candidates[] = dirname(__DIR__) . '/klumba-data';
     $candidates[] = __DIR__ . '/klumba-lib/data';
@@ -455,7 +497,7 @@ function exportCodes(array $s): string
 
 function adminPassword(): ?string
 {
-    $pw = defined('ADMIN_PASSWORD') ? trim((string) ADMIN_PASSWORD) : '';
+    $pw = configValue('ADMIN_PASSWORD');
     if ($pw === '' && getenv('ADMIN_PASSWORD')) $pw = trim((string) getenv('ADMIN_PASSWORD'));
     return $pw === '' ? null : $pw;
 }
@@ -501,7 +543,10 @@ function adminTokenFromRequest(): ?string
     foreach (['HTTP_AUTHORIZATION', 'REDIRECT_HTTP_AUTHORIZATION'] as $k) {
         if (!empty($_SERVER[$k]) && strncmp($_SERVER[$k], 'Bearer ', 7) === 0) return substr($_SERVER[$k], 7);
     }
-    return $_SERVER['HTTP_X_ADMIN_TOKEN'] ?? null;
+    if (!empty($_SERVER['HTTP_X_ADMIN_TOKEN'])) return $_SERVER['HTTP_X_ADMIN_TOKEN'];
+    // запасной путь: ключ в теле запроса (если хостинг отрезает заголовки)
+    global $body;
+    return is_array($body) && is_string($body['_token'] ?? null) ? $body['_token'] : null;
 }
 
 function clientIp(): string
@@ -562,6 +607,19 @@ if ($method === 'GET') {
             $free = [];
             foreach (catalog()['slots'] as $sl) if (!isset($taken[$sl['id']])) $free[] = $sl;
             out($free);
+        case 'check':
+            // самопроверка для владельца сайта: ничего секретного не показывает
+            $dir = dataDir();
+            out([
+                'ok' => true,
+                'php' => PHP_VERSION,
+                'mbstring' => extension_loaded('mbstring'),
+                'dataFolder' => basename($dir) . (strpos($dir, __DIR__) === 0 ? ' (внутри public_html)' : ' (вне public_html — хорошо)'),
+                'dataWritable' => is_writable($dir),
+                'adminPasswordSet' => adminPassword() !== null,
+                'authorizationHeader' => isset($_SERVER['HTTP_AUTHORIZATION']) || isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION']),
+                'plantings' => count($s['plantings']),
+            ]);
         case 'health':
             out(['ok' => true, 'plantings' => count($s['plantings']), 'server' => 'php']);
         default:

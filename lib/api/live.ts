@@ -39,12 +39,14 @@ export function createLiveApi(base = ''): Api {
 
   async function post<T>(action: string, body: unknown, admin = false): Promise<T> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    let payload = body ?? {};
     if (admin && adminToken) {
-      headers.Authorization = `Bearer ${adminToken}`;
-      // некоторые хостинги не передают PHP заголовок Authorization — дублируем ключ своим заголовком
-      headers['X-Admin-Token'] = adminToken;
+      if (process.env.NEXT_PUBLIC_PHP_API === '1') {
+        // обычные хостинги часто не передают PHP заголовок Authorization — кладём ключ в тело запроса
+        payload = { ...(payload as object), _token: adminToken };
+      } else headers.Authorization = `Bearer ${adminToken}`;
     }
-    const res = await fetch(url(action), { method: 'POST', headers, body: JSON.stringify(body ?? {}) });
+    const res = await fetch(url(action), { method: 'POST', headers, body: JSON.stringify(payload) });
     if (res.status === 401) return { ok: false, error: 'unauthorized' as ApiError } as T;
     if (!res.ok && res.status !== 400) throw new HttpError(res.status);
     return res.json() as Promise<T>;

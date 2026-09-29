@@ -25,16 +25,26 @@ export function createLiveApi(base = ''): Api {
   let polling = false;
   let inflight: Promise<GardenSnapshot> | null = null;
 
+  // сборка для обычного PHP-хостинга (npm run php:build): все запросы идут в один файл api.php
+  const url = (action: string, query = '') =>
+    process.env.NEXT_PUBLIC_PHP_API === '1'
+      ? `api.php?action=${action}${query.replace(/^\?/, '&')}`
+      : `${base}/api/${action}${query}`;
+
   async function get<T>(action: string, query = ''): Promise<T> {
-    const res = await fetch(`${base}/api/${action}${query}`, { cache: 'no-store' });
+    const res = await fetch(url(action, query), { cache: 'no-store' });
     if (!res.ok) throw new HttpError(res.status);
     return res.json() as Promise<T>;
   }
 
   async function post<T>(action: string, body: unknown, admin = false): Promise<T> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (admin && adminToken) headers.Authorization = `Bearer ${adminToken}`;
-    const res = await fetch(`${base}/api/${action}`, { method: 'POST', headers, body: JSON.stringify(body ?? {}) });
+    if (admin && adminToken) {
+      headers.Authorization = `Bearer ${adminToken}`;
+      // некоторые хостинги не передают PHP заголовок Authorization — дублируем ключ своим заголовком
+      headers['X-Admin-Token'] = adminToken;
+    }
+    const res = await fetch(url(action), { method: 'POST', headers, body: JSON.stringify(body ?? {}) });
     if (res.status === 401) return { ok: false, error: 'unauthorized' as ApiError } as T;
     if (!res.ok && res.status !== 400) throw new HttpError(res.status);
     return res.json() as Promise<T>;

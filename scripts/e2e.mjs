@@ -6,7 +6,7 @@ const PW = process.env.PW || 'Подсолнух2026';
 const DEMO = !!process.env.DEMO;
 const S = 'e2e-shots/';
 fs.mkdirSync(S, { recursive: true });
-const b = await chromium.launch();
+const b = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
 const errs = [];
 let fails = 0;
 const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };

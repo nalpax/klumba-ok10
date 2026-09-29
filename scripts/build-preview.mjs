@@ -13,7 +13,9 @@ if (archiveIdx > -1 && (!archiveFile || !fs.existsSync(archiveFile))) {
   console.error('Укажите файл архива: npm run archive:build -- klumba-archive.json');
   process.exit(1);
 }
-const out = path.join(root, archiveFile ? 'archive-dist' : 'preview-dist');
+// --php: настоящий сайт для обычного PHP-хостинга (public_html), сервер — файл api.php (папка php/)
+const php = process.argv.includes('--php');
+const out = path.join(root, php ? 'php-dist' : archiveFile ? 'archive-dist' : 'preview-dist');
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
 
@@ -27,7 +29,8 @@ await esbuild.build({
   alias: { '@': root },
   define: {
     'process.env.NODE_ENV': '"production"',
-    'process.env.NEXT_PUBLIC_DEMO': archiveFile ? '""' : '"1"',
+    'process.env.NEXT_PUBLIC_DEMO': archiveFile || php ? '""' : '"1"',
+    'process.env.NEXT_PUBLIC_PHP_API': php ? '"1"' : '""',
     'process.env.NEXT_PUBLIC_ARCHIVE': archiveFile ? '"1"' : '""',
     'process.env.NEXT_PUBLIC_SITE_URL': '""',
   },
@@ -55,7 +58,7 @@ fs.writeFileSync(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>С Днём учителя! Клумба ОК № 10${archiveFile ? "" : " — демо"}</title>
+<title>С Днём учителя! Клумба ОК № 10${archiveFile || php ? "" : " — демо"}</title>
 <link rel="icon" href="brand/icon-192.png">
 <link rel="stylesheet" href="site.css">
 </head>
@@ -63,7 +66,25 @@ fs.writeFileSync(
 </html>
 `,
 );
-if (archiveFile) {
+if (php) {
+  // сервер на PHP + справочник (цветы, цвета, места на клумбе) — тот же, что у Node-сервера
+  fs.cpSync(path.join(root, 'php'), out, { recursive: true });
+  const tmp = path.join(out, '.catalog.cjs');
+  await esbuild.build({
+    entryPoints: [path.join(root, 'scripts/php-catalog.ts')],
+    bundle: true,
+    platform: 'node',
+    format: 'cjs',
+    outfile: tmp,
+    alias: { '@': root },
+    logLevel: 'warning',
+  });
+  const { createRequire } = await import('node:module');
+  const catalog = createRequire(import.meta.url)(tmp).catalog();
+  fs.rmSync(tmp);
+  fs.writeFileSync(path.join(out, 'klumba-lib', 'catalog.json'), JSON.stringify(catalog));
+  console.log(`php-dist готов: ${catalog.slots.length} мест на клумбе`);
+} else if (archiveFile) {
   // проверяем, что это действительно архив клумбы, и кладём рядом со страницей
   const snap = JSON.parse(fs.readFileSync(archiveFile, 'utf8'));
   if (!Array.isArray(snap.plantings) || !Array.isArray(snap.teachers)) {

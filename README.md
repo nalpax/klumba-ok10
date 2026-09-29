@@ -84,6 +84,13 @@ sudo bash /opt/klumba/deploy/install.sh
 4. Для домена и https поставьте перед сайтом Caddy или nginx. С Caddy это одна строка в `Caddyfile`:
    `ваш-домен.ru { reverse_proxy localhost:3000 }`. Сертификат он получит сам.
 
+### Вариант 1½. Обычный хостинг с PHP (папка public_html)
+
+`npm run build && npm run php:build` собирает в `php-dist/` тот же сайт, но сервер у него — один файл `api.php`
+(правила те же, что в `lib/core/engine.ts`, данные — JSON-файл в папке `klumba-data` рядом с `public_html`).
+Содержимое `php-dist/` загружается в `public_html`, затем в `config.php` вписывается пароль администратора.
+Нужен PHP 7.4+ с mbstring. Проверка: `/api.php?action=health`.
+
 ### Вариант 2. Облачное приложение из Dockerfile
 
 В панели хостинга создайте приложение из репозитория (сборка по `Dockerfile`), подключите постоянный диск

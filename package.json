@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "preview:build": "node scripts/build-preview.mjs",
     "test:e2e": "node scripts/e2e.mjs",
-    "archive:build": "node scripts/build-preview.mjs --archive"
+    "archive:build": "node scripts/build-preview.mjs --archive",
+    "php:build": "node scripts/build-preview.mjs --php"
   },
   "dependencies": {
     "next": "^15.5.0",

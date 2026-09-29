@@ -91,3 +91,48 @@ export async function printPoster(win: Window, siteUrl: string) {
     </div></body></html>`);
   win.document.close();
 }
+
+/**
+ * Листы для волонтёров: сверху один QR-код сайта и короткая инструкция, ниже 30 талончиков с кодами (3 × 10).
+ * Волонтёр держит лист, ученик сканирует QR, получает талончик и вводит код. Кодов больше 30 — несколько листов.
+ */
+export async function printVolunteerSheets(win: Window, siteUrl: string, codes: string[], label?: string) {
+  const svg = await qrSvg(siteUrl, 0);
+  const pages: string[][] = [];
+  for (let i = 0; i < codes.length; i += 30) pages.push(codes.slice(i, i + 30));
+  const sheet = (list: string[], n: number) => `<section class="sheet">
+      <h1>Посади цветок для своего учителя!</h1>
+      <p class="sub">С Днём учителя! · ${esc(SCHOOL.complex)}${label ? ` · ${esc(label)}` : ''}${pages.length > 1 ? ` · лист ${n}` : ''}</p>
+      <div class="head">
+        <div class="qr">${svg}</div>
+        <ol>
+          <li>Наведи камеру телефона на QR-код слева.</li>
+          <li>На сайте нажми «Вход» и введи код со своего талончика.</li>
+          <li>Выбери, кому посадить цветок, сам цветок, его цвет и место на клумбе.</li>
+        </ol>
+      </div>
+      <p class="cut">Разрежь по пунктиру и раздай талончики: один талончик — один ученик.</p>
+      <div class="tickets">${list
+        .map((c) => `<div class="t"><span>Посади цветок для учителя</span><b>${esc(formatCode(c))}</b></div>`)
+        .join('')}</div>
+    </section>`;
+  win.document.open();
+  win.document.write(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Листы для волонтёров — ${esc(SCHOOL.complex)}</title>
+    <style>${PRINT_CSS}
+    .sheet{width:190mm;margin:0 auto;padding-top:2mm;break-after:page}
+    .sheet:last-child{break-after:auto}
+    h1{font-family:Georgia,serif;font-size:26px;color:#2f5a0f;text-align:center}
+    .sub{text-align:center;color:#6d6650;font-size:13px;margin-top:1mm}
+    .head{display:flex;gap:7mm;align-items:center;margin:5mm 0 3mm}
+    .head .qr{width:48mm;height:48mm;flex:none}.head .qr svg{width:100%;height:100%}
+    ol{padding-left:6mm;font-size:15px;line-height:1.45}ol li{margin-bottom:2mm}ol li::marker{color:#2f5a0f;font-weight:700}
+    .cut{text-align:center;color:#6d6650;font-size:11px;margin-bottom:2mm}
+    .tickets{display:grid;grid-template-columns:repeat(3,1fr)}
+    .t{height:17.6mm;border:1px dashed #9bb07a;background:#fffdf5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1mm}
+    .t span{font-size:10px;color:#6d6650}
+    .t b{font-size:20px;letter-spacing:.06em;font-family:'DejaVu Sans Mono',Consolas,monospace}
+    </style></head><body>
+    <div class="bar"><button onclick="print()">Печать</button><span>${codes.length} ${codes.length === 1 ? 'код' : 'кодов'} · листов: ${pages.length}. Разрежьте талончики по пунктиру.</span></div>
+    ${pages.map((p, i) => sheet(p, i + 1)).join('')}</body></html>`);
+  win.document.close();
+}

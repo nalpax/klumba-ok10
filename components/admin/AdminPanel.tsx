@@ -10,7 +10,7 @@ import { formatCode } from '@/lib/codes';
 import { DEFAULT_CLOSING, STATUS_TEXT, type ClosingContent, type EventStatus } from '@/lib/content';
 import { ALL_FLOWER_IDS } from '@/lib/garden/catalog';
 import { FLOWER_COLORS } from '@/lib/garden/palette';
-import { codeLink, defaultSiteUrl, printCodeCards, printPoster, qrPng } from '@/lib/qr';
+import { codeLink, defaultSiteUrl, printCodeCards, printPoster, printVolunteerSheets, qrPng } from '@/lib/qr';
 import type { FlowerType } from '@/lib/garden/types';
 import { fullName } from '@/lib/names';
 import { plural } from '@/lib/plural';
@@ -658,7 +658,7 @@ function TeacherForm({
 }
 
 function CodesTab({ stats, onGenerated }: { stats: AdminStats; onGenerated: () => void }) {
-  const [count, setCount] = useState(25);
+  const [count, setCount] = useState(30);
   const [label, setLabel] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -670,6 +670,12 @@ function CodesTab({ stats, onGenerated }: { stats: AdminStats; onGenerated: () =
     if (!codes) return;
     const win = openPrintWindow();
     if (win) await printCodeCards(win, defaultSiteUrl(), codes, 'Посади цветок для наших учителей 🌷', codesLabel);
+  };
+
+  const printSheets = async () => {
+    if (!codes) return;
+    const win = openPrintWindow();
+    if (win) await printVolunteerSheets(win, defaultSiteUrl(), codes, codesLabel);
   };
 
   const generate = async () => {
@@ -752,6 +758,12 @@ function CodesTab({ stats, onGenerated }: { stats: AdminStats; onGenerated: () =
               Распечатать карточки с QR
             </button>
             <span className="admin-hint">На каждой карточке — код и QR: ученик наводит камеру и сразу попадает на сайт уже со своим кодом.</span>
+          </div>
+          <div className="dialog__buttons">
+            <button type="button" className="btn btn--lime btn--sm" onClick={printSheets}>
+              Листы для волонтёров
+            </button>
+            <span className="admin-hint">Сверху один QR-код сайта, ниже 30 талончиков с кодами на листе A4. Волонтёр режет и раздаёт.</span>
           </div>
         </div>
       ) : null}

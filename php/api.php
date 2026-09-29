@@ -294,6 +294,28 @@ function onlyOldDefaults(array $s): bool
     return true;
 }
 
+function atomicWrite(string $file, string $data): void
+{
+    $tmp = $file . '.' . getmypid() . '.tmp';
+    file_put_contents($tmp, $data);
+    rename($tmp, $file);
+}
+
+/**
+ * Быстрый путь для опроса «что нового» (каждый открытый телефон — раз в 4 секунды):
+ * если после последнего сохранения ничего не менялось, хватает маленького meta.json.
+ * null — готовых файлов нет или они старее основного (тогда читаем всё как обычно).
+ */
+function freshCache(string $name)
+{
+    $dir = dataDir();
+    $main = $dir . '/klumba.json';
+    $f = $dir . '/' . $name;
+    clearstatcache();
+    if (!is_file($f) || !is_file($main) || filemtime($f) < filemtime($main)) return null;
+    return $f;
+}
+
 function saveState(array $s): void
 {
     $dir = dataDir();
@@ -301,9 +323,14 @@ function saveState(array $s): void
     // пустые словари должны остаться объектами {}, а не массивами []
     $s['studentCodes'] = (object) $s['studentCodes'];
     $s['teacherCodes'] = (object) $s['teacherCodes'];
-    $tmp = $file . '.' . getmypid() . '.tmp';
-    file_put_contents($tmp, json_encode($s, JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION));
-    rename($tmp, $file);
+    atomicWrite($file, json_encode($s, JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION));
+    // готовые ответы для частых запросов: клумба целиком и «что нового» — без разбора большого файла
+    $s['studentCodes'] = [];
+    $s['teacherCodes'] = [];
+    $lastId = 0;
+    foreach ($s['plantings'] as $p) if ($p['id'] > $lastId) $lastId = $p['id'];
+    atomicWrite($dir . '/public.json', json_encode(snapshot($s), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION));
+    atomicWrite($dir . '/meta.json', json_encode(['version' => $s['version'], 'lastId' => $lastId, 'count' => count($s['plantings'])]));
     $b = $dir . '/klumba.backup.json';
     if (!is_file($b) || time() - filemtime($b) > BACKUP_EVERY_S) @copy($file, $b);
 }
@@ -729,6 +756,26 @@ function registerFailure(string $key, int $window): void
 
 $action = (string) ($_GET['action'] ?? '');
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+if ($method === 'GET' && ($action === 'updates' || $action === 'garden' || $action === 'health')) {
+    $lock = openStore(false);
+    $meta = freshCache('meta.json');
+    $meta = $meta ? json_decode((string) file_get_contents($meta), true) : null;
+    if (is_array($meta)) {
+        if ($action === 'health') out(['ok' => true, 'plantings' => $meta['count'], 'server' => 'php']);
+        if ($action === 'updates' && (int) ($_GET['after'] ?? 0) >= $meta['lastId']) {
+            out(['version' => $meta['version'], 'plantings' => []]);
+        }
+        $pub = freshCache('public.json');
+        if ($action === 'garden' && $pub) {
+            $GLOBALS['__klumba_done'] = true;
+            header('Content-Length: ' . filesize($pub));
+            readfile($pub);
+            exit;
+        }
+    }
+    flock($lock, LOCK_UN);
+}
 
 if ($method === 'GET') {
     $lock = openStore(false);

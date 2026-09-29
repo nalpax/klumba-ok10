@@ -16,13 +16,38 @@ ini_set('display_errors', '0');
  */
 function configValue(string $name): string
 {
+    $m = configMatch($name);
+    return $m === null ? '' : $m;
+}
+
+/** Текст config.php в UTF-8 (редактор хостинга может сохранить файл в Windows-1251). */
+function configText(): string
+{
     static $text = null;
-    if ($text === null) $text = (string) @file_get_contents(__DIR__ . '/config.php');
-    $q = '[\'"«»“”„]';
-    if (preg_match('/define\s*\(\s*' . $q . $name . $q . '\s*,\s*' . $q . '(.*?)' . $q . '\s*\)/u', $text, $m)) {
-        return trim($m[1]);
+    if ($text === null) {
+        $text = (string) @file_get_contents(__DIR__ . '/config.php');
+        if (strncmp($text, "\xEF\xBB\xBF", 3) === 0) $text = substr($text, 3);
+        if (!preg_match('//u', $text)) {
+            $conv = function_exists('iconv') ? @iconv('CP1251', 'UTF-8//IGNORE', $text) : false;
+            if ($conv === false && function_exists('mb_convert_encoding')) $conv = mb_convert_encoding($text, 'UTF-8', 'CP1251');
+            $text = $conv === false ? '' : $conv;
+        }
     }
-    return '';
+    return $text;
+}
+
+/** Значение define('NAME', '...') или null, если такой строки нет (строки-комментарии пропускаем). */
+function configMatch(string $name): ?string
+{
+    $q = '[\'"«»“”„`]';
+    foreach (preg_split('/\R/u', configText()) as $line) {
+        $t = ltrim($line);
+        if ($t === '' || $t[0] === '*' || strncmp($t, '//', 2) === 0 || $t[0] === '#' || strncmp($t, '/*', 2) === 0) continue;
+        if (preg_match('/define\s*\(\s*' . $q . '\s*' . $name . '\s*' . $q . '\s*,\s*' . $q . '(.*)' . $q . '\s*\)?\s*;?\s*$/u', $line, $m)) {
+            return trim($m[1]);
+        }
+    }
+    return null;
 }
 
 // Если на хостинге нет расширения mbstring — простые замены (для кириллицы и латиницы этого достаточно).
@@ -649,6 +674,8 @@ if ($method === 'GET') {
                 'dataFolder' => basename($dir) . (strpos($dir, __DIR__) === 0 ? ' (внутри public_html)' : ' (вне public_html — хорошо)'),
                 'dataWritable' => is_writable($dir),
                 'adminPasswordSet' => adminPassword() !== null,
+                'configFound' => is_file(__DIR__ . '/config.php'),
+                'configPasswordLine' => configMatch('ADMIN_PASSWORD') !== null,
                 'authorizationHeader' => isset($_SERVER['HTTP_AUTHORIZATION']) || isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION']),
                 'plantings' => count($s['plantings']),
             ]);

@@ -109,6 +109,19 @@ if (!function_exists('mb_strtoupper')) {
     }
 }
 
+set_error_handler(function ($no, $msg, $file, $line) {
+    journal('PHP предупреждение: ' . $msg . ' (строка ' . $line . ')');
+    return true;
+});
+register_shutdown_function(function () {
+    $e = error_get_last();
+    if (empty($GLOBALS['__klumba_done']) && $e && in_array($e['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+        journal('PHP ОШИБКА (' . ($_GET['action'] ?? '') . '): ' . $e['message'] . ' (строка ' . $e['line'] . ')');
+        if (!headers_sent()) http_response_code(500);
+        echo '{"ok":false,"error":"network"}';
+    }
+});
+
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
@@ -127,10 +140,49 @@ const BACKUP_EVERY_S = 600;
 
 /* ------------------------------------ вывод ------------------------------------ */
 
+/** Журнал для самопроверки: какие запросы пришли и чем закончились (без тел запросов и паролей). */
+function journal(string $line): void
+{
+    static $dir = false;
+    if ($dir === false) {
+        $dir = null;
+        foreach ([configValue('KLUMBA_DATA_DIR'), getenv('KLUMBA_DATA_DIR') ?: '', dirname(__DIR__) . '/klumba-data', __DIR__ . '/klumba-lib/data'] as $c) {
+            if ($c !== '' && is_dir($c) && is_writable($c)) {
+                $dir = $c;
+                break;
+            }
+        }
+    }
+    if ($dir === null) return;
+    $f = $dir . '/journal.log';
+    if (is_file($f) && filesize($f) > 200000) @rename($f, $f . '.old');
+    @file_put_contents($f, date('d.m H:i:s') . ' ' . $line . "\n", FILE_APPEND | LOCK_EX);
+}
+
+function journalTail(int $n): array
+{
+    $f = dataDir() . '/journal.log';
+    if (!is_file($f)) return [];
+    $lines = file($f, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+    return array_slice($lines, -$n);
+}
+
 function out($data, int $status = 200): void
 {
+    $action = (string) ($_GET['action'] ?? '');
+    $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION);
+    if ($json === false) {
+        journal("$action: ошибка json_encode: " . json_last_error_msg());
+        $status = 500;
+        $json = '{"ok":false,"error":"network"}';
+    }
+    if (!in_array($action, ['check', 'updates', 'health'], true)) {
+        $err = is_array($data) && isset($data['error']) ? ' ' . $data['error'] : '';
+        journal(($_SERVER['REQUEST_METHOD'] ?? '?') . " $action → $status$err");
+    }
+    $GLOBALS['__klumba_done'] = true;
     http_response_code($status);
-    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION);
+    echo $json;
     exit;
 }
 
@@ -707,6 +759,7 @@ if ($method === 'GET') {
                 'configFound' => is_file(__DIR__ . '/config.php'),
                 'configPasswordLine' => configMatch('ADMIN_PASSWORD') !== null,
                 'configPreview' => configPreview(),
+                'journal' => journalTail(15),
                 'authorizationHeader' => isset($_SERVER['HTTP_AUTHORIZATION']) || isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION']),
                 'plantings' => count($s['plantings']),
             ]);

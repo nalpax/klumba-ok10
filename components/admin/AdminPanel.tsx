@@ -37,7 +37,8 @@ async function copyText(text: string): Promise<boolean> {
     return false;
   }
 }
-const ACCENT_SWATCHES = FLOWER_COLORS.slice(0, 10);
+// все цвета, кроме белого (он не виден в легенде)
+const ACCENT_SWATCHES = FLOWER_COLORS.filter((c) => c.hex !== '#F8F4E8');
 
 /** Панель администратора: статус посадки, учителя, коды. Открывается поверх сайта отдельным окном. */
 export function AdminPanel() {
@@ -582,16 +583,16 @@ function TeacherForm({
             <input
               className="field__input"
               value={form.lastName}
-              placeholder="Например: Математика и информатика"
+              placeholder="Например: Математика"
               onChange={(e) => setForm({ ...form, lastName: e.target.value, firstName: '', middleName: '' })}
             />
           </label>
           <label className="field">
-            <span className="field__label">Какие предметы входят</span>
+            <span className="field__label">Подпись (кто это)</span>
             <input
               className="field__input"
               value={form.subject}
-              placeholder="Например: алгебра, геометрия, информатика"
+              placeholder="Например: Учителя математики"
               onChange={(e) => setForm({ ...form, subject: e.target.value })}
             />
           </label>

@@ -27,9 +27,10 @@ export function addressName(p: PersonName): string {
   return isArea(p) ? 'Дорогие учителя' : [p.firstName, p.middleName].filter(Boolean).join(' ');
 }
 
-/** Две буквы для кружка: «МИ» для «Математика и информатика», «ДЛ» для «Дмитриева Любовь». */
+/** Две буквы для кружка: «ИЯ» для «Иностранные языки», «Ма» для «Математика», «ДЛ» для «Дмитриева Любовь». */
 export function initials(p: PersonName): string {
   if (!isArea(p)) return `${p.lastName.charAt(0)}${p.firstName.charAt(0)}`.toUpperCase();
   const words = p.lastName.split(/[\s-]+/).filter((w) => w.length > 2);
+  if (words.length === 1) return words[0].charAt(0).toUpperCase() + words[0].charAt(1); // «Ма», «Би»
   return words.slice(0, 2).map((w) => w.charAt(0)).join('').toUpperCase();
 }

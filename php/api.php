@@ -145,9 +145,11 @@ function loadState(): array
         if (is_array($s) && isset($s['teachers'])) {
             $s['studentCodes'] = $s['studentCodes'] ?? [];
             $s['teacherCodes'] = $s['teacherCodes'] ?? [];
-            // клумба, созданная до предметных областей (только директор), — добавляем их один раз
-            if (empty($s['areasSeeded'])) {
-                if (count($s['teachers']) === 1) {
+            // клумба, созданная до нынешнего списка предметных областей (только директор или прежний
+            // список, по которому ещё не сажали и не выдавали коды), получает актуальный список один раз
+            if (($s['areasVersion'] ?? 0) < 2) {
+                if (onlyOldDefaults($s)) {
+                    $s['teachers'] = array_values(array_filter($s['teachers'], function ($t) { return !empty($t['isDirector']); }));
                     foreach (catalog()['empty']['teachers'] as $t) {
                         if (empty($t['isDirector'])) {
                             $t['id'] = $s['nextTeacherId']++;
@@ -156,7 +158,8 @@ function loadState(): array
                     }
                     $s['version']++;
                 }
-                $s['areasSeeded'] = true;
+                unset($s['areasSeeded']);
+                $s['areasVersion'] = 2;
             }
             return $s;
         }
@@ -168,6 +171,20 @@ function loadState(): array
         }
     }
     return getenv('KLUMBA_SEED_DEMO') === '1' ? catalog()['demo'] : catalog()['empty'];
+}
+
+/** Только директор и области из прежнего списка, без цветов и кодов для них. */
+function onlyOldDefaults(array $s): bool
+{
+    $old = ['Математика и информатика', 'Русский язык и литература', 'Иностранные языки', 'Общественно-научные предметы',
+        'Естественно-научные предметы', 'Начальная школа', 'Искусство и технология', 'Физическая культура и ОБЗР'];
+    if (!empty($s['areasSeeded']) && count($s['teachers']) === 1) return false; // директор один по решению админа
+    foreach ($s['teachers'] as $t) {
+        if (!empty($t['isDirector'])) continue;
+        if (!in_array($t['lastName'], $old, true)) return false;
+        if (plantedFor($s, $t['id']) > 0 || in_array($t['id'], array_map('intval', array_values($s['teacherCodes'])), true)) return false;
+    }
+    return true;
 }
 
 function saveState(array $s): void

@@ -73,7 +73,6 @@ export async function printCodeCards(win: Window, siteUrl: string, codes: string
 /** Плакат A4 с QR-кодом сайта — повесить в школе или показать на экране. */
 export async function printPoster(win: Window, siteUrl: string) {
   const svg = await qrSvg(siteUrl, 0);
-  const host = esc(siteUrl.replace(/^https?:\/\//, ''));
   win.document.open();
   win.document.write(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>QR-код клумбы</title>
     <style>${PRINT_CSS}
@@ -88,7 +87,6 @@ export async function printPoster(win: Window, siteUrl: string) {
       <h1>🌷 Посади цветок для своего учителя!</h1>
       <p class="lead">Наведите камеру телефона на QR-код и введите код, который вам выдали.</p>
       <div class="qr">${svg}</div>
-      <p class="url">${host}</p>
       <p class="foot">С Днём учителя! · ${esc(SCHOOL.complex)}, ${esc(SCHOOL.city)}</p>
     </div></body></html>`);
   win.document.close();
